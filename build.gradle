@@ -1,0 +1,79 @@
+apply plugin: 'java-library'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    useGpgCmd()
+    sign configurations.archives
+}
+
+group = "eu.miltema"
+archivesBaseName = "slimorm"
+version = "0.0.1"
+
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: 'ossrhUsername', password: 'ossrhPassword')
+      }
+
+      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+        authentication(userName: 'ossrhUsername', password: 'ossrhPassword')
+      }
+
+      pom.project {
+        name 'SlimORM'
+        packaging 'jar'
+        artifactId 'slimorm'
+        description 'Lightweight Java ORM library'
+        url 'https://github.com/tehnomaan/slimorm'
+
+        scm {
+          connection 'scm:git:git://github.com/tehnomaan/slimorm.git'
+          developerConnection 'scm:git:git://github.com/tehnomaan/slimorm.git'
+          url 'https://github.com/tehnomaan/slimorm'
+        }
+
+        licenses {
+          license {
+            name 'GNU General Public License, Version 3'
+            url 'https://www.gnu.org/licenses/gpl-3.0.html'
+          }
+        }
+
+        developers {
+          developer {
+            id 'margus'
+            name 'Margus Selge'
+            email 'margus.selge@gmail.com'
+          }
+        }
+      }
+    }
+  }
+}

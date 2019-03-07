@@ -82,6 +82,25 @@ public class Employee {
 }
 ```
 
+# Transactions
+
+In the "Basic Usage" chapter, each example statement was executed as individual transaction. Here is an example with a transaction including multiple statements.
+When all statements succeed, SlimORM automatically commits the transaction. When any of the statements throws an Exception, SlimORM automatically rolls back the entire transaction.
+
+```java
+Employee[] entities = db.transaction((db, connection) -> {
+	Employee e1 = new Employee();
+	e1.name = "John Smith";
+	db.insert(e1);
+	Employee e2 = new Employee();
+	e2.name = "Jane Doe";
+	db.insert(e2);
+	return new Employee[] {e1, e2};
+});
+```
+
+SlimORM manages the connection itself - no need to close, commit or rollback the connection.
+It is possible to return an object of any type from the transaction.
 
 # Deploying to Maven Central
 * Install GnuPG from https://www.gnupg.org/download/ .

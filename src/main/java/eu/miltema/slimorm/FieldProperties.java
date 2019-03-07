@@ -7,6 +7,7 @@ public class FieldProperties {
 	public Field field;
 	public boolean isMutable = true;
 	public SaveBinder saveBinder;
+	public LoadBinder loadBinder;
 
 	public String toString() {
 		return field.getName() + "/" + columnName + "/mutable=" + isMutable;

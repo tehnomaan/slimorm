@@ -11,8 +11,9 @@ public class EntityProperties {
 	private String tableName;
 	Collection<FieldProperties> fields = new ArrayList<>();//transient fields excluded
 	Collection<FieldProperties> mutableFields = new ArrayList<>();//transient fields excluded
+	Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
 	FieldProperties idField;
-	String sqlInsert, sqlUpdate, sqlDelete, sqlWhere;
+	String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere;
 
 	public EntityProperties(Class<?> clazz) {
 		initFields(clazz);
@@ -40,9 +41,11 @@ public class EntityProperties {
 				props.saveBinder = JdbcBinders.instance.saveBinders.get(field.getType());
 				if (props.saveBinder == null)
 					throw new RuntimeException("Unsupported field type for field " + field.getName());
+				props.loadBinder = JdbcBinders.instance.loadBinders.get(field.getType());
 				fields.add(props);
 				if (props.isMutable)
 					mutableFields.add(props);
+				mapColumnToField.put(props.columnName, props);
 			}
 			clazz = clazz.getSuperclass();
 		}
@@ -67,6 +70,7 @@ public class EntityProperties {
 		sqlUpdate = "UPDATE " + tableName + " SET " +
 				mutableColumns.stream().map(column -> column + "=?").collect(joining(","));
 		sqlDelete = "DELETE FROM " + tableName;
+		sqlSelect = "SELECT * FROM " + tableName;
 		if (idField != null)
 			sqlWhere = idField.columnName + "=?";
 	}

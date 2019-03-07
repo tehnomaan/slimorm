@@ -112,6 +112,27 @@ public class Database {
 		}) > 0;
 	}
 
+	public SqlQuery sql(String sql, Object ... whereParameters) throws Exception {
+		SqlQuery q = new SqlQuery(this, sql);
+		q.parameters = whereParameters;
+		return q;
+	}
+
+	public SqlQuery where(String whereExpression, Object ... whereParameters) throws Exception {
+		SqlQuery q = new SqlQuery(this, null);
+		q.whereExpression = whereExpression;
+		q.parameters = whereParameters;
+		return q;
+	}
+
+	public <T> Collection<T> listAll(Class<? extends T> entityClass) throws Exception {
+		return new SqlQuery(this, getProperties(entityClass).sqlSelect).list(entityClass);
+	}
+
+	public <T> T get(Class<? extends T> entityClass, Object id) throws Exception {
+		return where(getProperties(entityClass).sqlWhere, id).first(entityClass);
+	}
+
 	synchronized public <T> T transaction(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
 			throw new RuntimeException("Nested transactions are not supported");
@@ -138,7 +159,7 @@ public class Database {
 		return ordinal;
 	}
 
-	private void bindWhereParameters(PreparedStatement stmt, int ordinal, Object... whereParameters) throws SQLException {
+	void bindWhereParameters(PreparedStatement stmt, int ordinal, Object... whereParameters) throws SQLException {
 		if (whereParameters != null)
 			for(Object whereParam : whereParameters)
 				if (whereParam == null)
@@ -146,14 +167,14 @@ public class Database {
 				else JdbcBinders.instance.saveBinders.get(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
 	}
 
-	private EntityProperties getProperties(Class<?> entityClass) {
+	EntityProperties getProperties(Class<?> entityClass) {
 		EntityProperties props = entityProps.get(entityClass);
 		if (props == null)
 			entityProps.put(entityClass, props = new EntityProperties(entityClass));
 		return props;
 	}
 
-	synchronized private <T> T runStatements(TransactionStatements<T> statements) throws Exception {
+	synchronized <T> T runStatements(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
 			return statements.statements(this, txConnection);//in transaction context, connection management takes place in method transaction
 

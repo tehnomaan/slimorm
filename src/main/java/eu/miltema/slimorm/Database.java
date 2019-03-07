@@ -87,11 +87,7 @@ public class Database {
 			EntityProperties props = getProperties(entity.getClass());
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlUpdate + " WHERE " + whereExpression)) {
 				int ordinal = bindMutableParameters(entity, props, stmt);
-				if (whereParameters != null)
-					for(Object whereParam : whereParameters)
-						if (whereParam == null)
-							stmt.setNull(++ordinal, Types.VARCHAR);
-						else JdbcBinders.instance.saveBinders.get(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+				bindWhereParameters(stmt, ordinal, whereParameters);
 				stmt.executeUpdate();
 			}
 			return entity;
@@ -110,29 +106,10 @@ public class Database {
 		return runStatements((db, conn) -> {
 			EntityProperties props = getProperties(entityClass);
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlDelete + " WHERE " + whereExpression)) {
-				int ordinal = 0;
-				if (whereParameters != null)
-					for(Object whereParam : whereParameters)
-						if (whereParam == null)
-							stmt.setNull(++ordinal, Types.VARCHAR);
-						else JdbcBinders.instance.saveBinders.get(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+				bindWhereParameters(stmt, 0, whereParameters);
 				return stmt.executeUpdate();
 			}
 		}) > 0;
-	}
-
-	private <T> int bindMutableParameters(T entity, EntityProperties props, PreparedStatement stmt) throws SQLException, IllegalAccessException {
-		int ordinal = 0;
-		for(FieldProperties fprops : props.mutableFields)
-			fprops.saveBinder.bind(stmt, ++ordinal, fprops.field.get(entity));
-		return ordinal;
-	}
-
-	private EntityProperties getProperties(Class<?> entityClass) {
-		EntityProperties props = entityProps.get(entityClass);
-		if (props == null)
-			entityProps.put(entityClass, props = new EntityProperties(entityClass));
-		return props;
 	}
 
 	synchronized public <T> T transaction(TransactionStatements<T> statements) throws Exception {
@@ -154,7 +131,29 @@ public class Database {
 		}
 	}
 
-	private <T> T runStatements(TransactionStatements<T> statements) throws Exception {
+	private <T> int bindMutableParameters(T entity, EntityProperties props, PreparedStatement stmt) throws SQLException, IllegalAccessException {
+		int ordinal = 0;
+		for(FieldProperties fprops : props.mutableFields)
+			fprops.saveBinder.bind(stmt, ++ordinal, fprops.field.get(entity));
+		return ordinal;
+	}
+
+	private void bindWhereParameters(PreparedStatement stmt, int ordinal, Object... whereParameters) throws SQLException {
+		if (whereParameters != null)
+			for(Object whereParam : whereParameters)
+				if (whereParam == null)
+					stmt.setNull(++ordinal, Types.VARCHAR);
+				else JdbcBinders.instance.saveBinders.get(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+	}
+
+	private EntityProperties getProperties(Class<?> entityClass) {
+		EntityProperties props = entityProps.get(entityClass);
+		if (props == null)
+			entityProps.put(entityClass, props = new EntityProperties(entityClass));
+		return props;
+	}
+
+	synchronized private <T> T runStatements(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
 			return statements.statements(this, txConnection);//in transaction context, connection management takes place in method transaction
 

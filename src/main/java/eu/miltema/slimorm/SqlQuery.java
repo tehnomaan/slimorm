@@ -26,9 +26,10 @@ public class SqlQuery {
 
 	/**
 	 * Return the results as a stream
+	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entities stream
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> Stream<? extends T> stream(Class<? extends T> entityClass) throws Exception {
 		return list(entityClass).stream();
@@ -36,9 +37,10 @@ public class SqlQuery {
 
 	/**
 	 * Return the results as a list
+	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entities list
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> List<T> list(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
@@ -57,9 +59,10 @@ public class SqlQuery {
 
 	/**
 	 * Return a single record/entity from the result
+	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entity; if no records where found, null is returned
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> T fetch(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
@@ -77,7 +80,7 @@ public class SqlQuery {
 	/**
 	 * Add an SQL ORDER BY clause to select query
 	 * @param columns columns list for ORDER BY, for example "age DESC, name"
-	 * @return
+	 * @return SqlQuery object
 	 */
 	public SqlQuery orderBy(String columns) {
 		this.orderBy = columns;
@@ -87,7 +90,7 @@ public class SqlQuery {
 	/**
 	 * Add an SQL GROUP BY clause to select query
 	 * @param columns columns list for GROUP BY, for example "name, age"
-	 * @return
+	 * @return SQLQuery object
 	 */
 	public SqlQuery groupBy(String columns) {
 		this.groupBy = columns;

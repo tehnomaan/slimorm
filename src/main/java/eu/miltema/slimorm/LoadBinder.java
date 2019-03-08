@@ -15,7 +15,7 @@ public interface LoadBinder {
 	 * @param rs resultset
 	 * @param index column index (1-based)
 	 * @return resulting value
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	Object convert(ResultSet rs, int index) throws Exception;
 }

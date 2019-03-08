@@ -16,7 +16,7 @@ public interface SaveBinder {
 	 * @param stmt prepared statement
 	 * @param index parameter index (1-based)
 	 * @param value parameter value
-	 * @throws SQLException
+	 * @throws SQLException when anything goes wrong
 	 */
 	void bind(PreparedStatement stmt, int index, Object value) throws SQLException;
 }

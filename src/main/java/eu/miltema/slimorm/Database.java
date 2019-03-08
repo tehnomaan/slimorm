@@ -24,7 +24,7 @@ public class Database {
 
 	/**
 	 * Create database object via datasource
-	 * @param dataSource
+	 * @param dataSource data source, which provides database connections
 	 */
 	public Database(DataSource dataSource) {
 		connFactory = () -> dataSource.getConnection();
@@ -33,7 +33,7 @@ public class Database {
 
 	/**
 	 * Create a database via custom connection factory
-	 * @param connectionFactory
+	 * @param connectionFactory custom connection factory, which provides database connections
 	 */
 	public Database(DatabaseConnectionFactory connectionFactory) {
 		this.connFactory = connectionFactory;
@@ -43,7 +43,7 @@ public class Database {
 	/**
 	 * Create database object via JNDI handle
 	 * @param jndiName JNDI name, for example "jdbc/demoDB"
-	 * @throws NamingException
+	 * @throws NamingException when JNDI name lookup fails
 	 */
 	public Database(String jndiName) throws NamingException {
 		Context ctx = new InitialContext();
@@ -58,7 +58,7 @@ public class Database {
 	 * @param jdbcUrl database URL, for example "jdbc:postgresql://localhost:5432/demoDB"
 	 * @param username SQL username
 	 * @param password SQL password
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public Database(String driverName, String jdbcUrl, String username, String password) throws Exception {
 		Class.forName(driverName).newInstance();
@@ -68,9 +68,10 @@ public class Database {
 
 	/**
 	 * Insert a single entity into database
+	 * @param <T> entity type
 	 * @param entity entity to insert
 	 * @return the same entity, with @Id field (if any) being initialized
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> T insert(T entity) throws Exception {
 		EntityProperties props = dialect.getProperties(entity.getClass());
@@ -90,9 +91,10 @@ public class Database {
 
 	/**
 	 * Insert a collection of entities into database as a batch. Batch insertion is faster than inserting one by one.
+	 * @param <T> entity type
 	 * @param entities collection of entities to insert
 	 * @return the same entities, with @Id field (if any) being initialized
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> Collection<T> insertBatch(Collection<T> entities) throws Exception {
 		if (entities.isEmpty())
@@ -120,7 +122,7 @@ public class Database {
 	/**
 	 * Update an existing entity in database. Only entities with @Id field can be updated. When @Id field is missing, use method update(entity, whereExpression, whereParameters)
 	 * @param entity entity with new attribute values
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public void update(Object entity) throws Exception {
 		EntityProperties props = dialect.getProperties(entity.getClass());
@@ -134,7 +136,7 @@ public class Database {
 	 * @param entity entity with new attribute values
 	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
 	 * @param whereParameters parameters for WHERE expression
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public void update(Object entity, String whereExpression, Object ... whereParameters) throws Exception {
 		runStatements((db, conn) -> {
@@ -153,7 +155,7 @@ public class Database {
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @param id entity id
 	 * @return true, if the record existed before deletion; false, if the record did not exist
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public boolean delete(Class<?> entityClass, Object id) throws Exception {
 		EntityProperties props = dialect.getProperties(entityClass);
@@ -168,7 +170,7 @@ public class Database {
 	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
 	 * @param whereParameters parameters for WHERE expression
 	 * @return number of records deleted
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public int delete(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
 		return runStatements((db, conn) -> {
@@ -185,7 +187,7 @@ public class Database {
 	 * @param sqlSelect SQL SELECT statement
 	 * @param whereParameters parameter values for WHERE expression
 	 * @return query object for fetching the results
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public SqlQuery sql(String sqlSelect, Object ... whereParameters) throws Exception {
 		SqlQuery q = new SqlQuery(this, sqlSelect);
@@ -198,7 +200,7 @@ public class Database {
 	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
 	 * @param whereParameters parameter values for WHERE expression
 	 * @return query object for fetching the results
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public SqlQuery where(String whereExpression, Object ... whereParameters) throws Exception {
 		SqlQuery q = new SqlQuery(this, null);
@@ -209,9 +211,10 @@ public class Database {
 
 	/**
 	 * Fetch all records/entities from a database table into a list
+	 * @param <T> entity type
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @return list of entities
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> List<T> listAll(Class<? extends T> entityClass) throws Exception {
 		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect).list(entityClass);
@@ -219,10 +222,11 @@ public class Database {
 
 	/**
 	 * Fetch a single record/entity from a database table
+	 * @param <T> entity type
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @param id entity id
 	 * @return entity; returns null, if id refers to non-existing record
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	public <T> T getById(Class<? extends T> entityClass, Object id) throws Exception {
 		return where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
@@ -230,9 +234,10 @@ public class Database {
 
 	/**
 	 * Runs a bunch of statements in a single transaction
+	 * @param <T> entity type
 	 * @param statements statements to run
 	 * @return the return value from statements
-	 * @throws Exception
+	 * @throws Exception when anything goes wrong
 	 */
 	synchronized public <T> T transaction(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)

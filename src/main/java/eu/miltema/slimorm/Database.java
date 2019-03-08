@@ -16,12 +16,11 @@ import eu.miltema.slimorm.dialect.*;
  */
 public class Database {
 
-	private static Map<Class<? extends Database>, Dialect> mapDialects = new HashMap<>();
+	private static Map<Class<? extends Database>, Dialect> mapDialects = new HashMap<>();//dialects are database-specific and are cached in this map, since dialect initialization can be time-consuming
 
-	private Dialect dialect;
+	Dialect dialect;
 	private DatabaseConnectionFactory connFactory;
 	private Connection txConnection;//connection for current transaction; when not in transaction context, this field is null
-	private Map<Class<?>, EntityProperties> entityProps = new HashMap<>();
 
 	/**
 	 * Create database object via datasource
@@ -74,7 +73,7 @@ public class Database {
 	 * @throws Exception
 	 */
 	public <T> T insert(T entity) throws Exception {
-		EntityProperties props = getProperties(entity.getClass());
+		EntityProperties props = dialect.getProperties(entity.getClass());
 		return runStatements((db, conn) -> {
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
 				bindMutableParameters(entity, props, stmt);
@@ -99,7 +98,7 @@ public class Database {
 		if (entities.isEmpty())
 			return entities;
 		Object[] array = entities.stream().toArray();
-		EntityProperties props = getProperties(array[0].getClass());
+		EntityProperties props = dialect.getProperties(array[0].getClass());
 		return runStatements((db, conn) -> {
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
 				for(int i = 0; i < array.length; i++) {
@@ -124,7 +123,7 @@ public class Database {
 	 * @throws Exception
 	 */
 	public void update(Object entity) throws Exception {
-		EntityProperties props = getProperties(entity.getClass());
+		EntityProperties props = dialect.getProperties(entity.getClass());
 		if (props.idField == null)
 			throw new Exception("Missing @Id field in " + entity.getClass().getSimpleName());
 		update(entity, props.sqlWhere, props.idField.field.get(entity));
@@ -139,7 +138,7 @@ public class Database {
 	 */
 	public void update(Object entity, String whereExpression, Object ... whereParameters) throws Exception {
 		runStatements((db, conn) -> {
-			EntityProperties props = getProperties(entity.getClass());
+			EntityProperties props = dialect.getProperties(entity.getClass());
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlUpdate + " WHERE " + whereExpression)) {
 				int ordinal = bindMutableParameters(entity, props, stmt);
 				bindWhereParameters(stmt, ordinal, whereParameters);
@@ -157,7 +156,7 @@ public class Database {
 	 * @throws Exception
 	 */
 	public boolean delete(Class<?> entityClass, Object id) throws Exception {
-		EntityProperties props = getProperties(entityClass);
+		EntityProperties props = dialect.getProperties(entityClass);
 		if (props.idField == null)
 			throw new Exception("Missing @Id field in " + entityClass.getSimpleName());
 		return delete(entityClass, props.sqlWhere, id) > 0;
@@ -173,7 +172,7 @@ public class Database {
 	 */
 	public int delete(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
 		return runStatements((db, conn) -> {
-			EntityProperties props = getProperties(entityClass);
+			EntityProperties props = dialect.getProperties(entityClass);
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlDelete + " WHERE " + whereExpression)) {
 				bindWhereParameters(stmt, 0, whereParameters);
 				return stmt.executeUpdate();
@@ -215,7 +214,7 @@ public class Database {
 	 * @throws Exception
 	 */
 	public <T> List<T> listAll(Class<? extends T> entityClass) throws Exception {
-		return new SqlQuery(this, getProperties(entityClass).sqlSelect).list(entityClass);
+		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect).list(entityClass);
 	}
 
 	/**
@@ -226,7 +225,7 @@ public class Database {
 	 * @throws Exception
 	 */
 	public <T> T getById(Class<? extends T> entityClass, Object id) throws Exception {
-		return where(getProperties(entityClass).sqlWhere, id).fetch(entityClass);
+		return where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
 	}
 
 	/**
@@ -267,13 +266,6 @@ public class Database {
 				if (whereParam == null)
 					stmt.setNull(++ordinal, Types.VARCHAR);
 				else dialect.getSaveBinder(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
-	}
-
-	EntityProperties getProperties(Class<?> entityClass) {
-		EntityProperties props = entityProps.get(entityClass);
-		if (props == null)
-			entityProps.put(entityClass, props = new EntityProperties(entityClass, dialect));
-		return props;
 	}
 
 	synchronized <T> T runStatements(TransactionStatements<T> statements) throws Exception {

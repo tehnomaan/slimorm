@@ -9,6 +9,7 @@ import java.sql.*;
 import java.time.*;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -17,6 +18,7 @@ import eu.miltema.slimorm.*;
 
 public class DefaultDialect implements Dialect {
 
+	Map<Class<?>, EntityProperties> entityProps = new HashMap<>();
 	HashMap<Class<?>, SaveBinder> saveBinders = new HashMap<>();
 	HashMap<Class<?>, LoadBinder> loadBinders = new HashMap<>();
 
@@ -127,5 +129,13 @@ public class DefaultDialect implements Dialect {
 	@Override
 	public String getSqlForWhere(String tableName, String idColumn) {
 		return idColumn + "=?";
+	}
+
+	@Override
+	public EntityProperties getProperties(Class<?> entityClass) {
+		EntityProperties props = entityProps.get(entityClass);
+		if (props == null)
+			entityProps.put(entityClass, props = new EntityProperties(entityClass, this));
+		return props;
 	}
 }

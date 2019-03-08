@@ -2,6 +2,12 @@ package eu.miltema.slimorm;
 
 import java.lang.reflect.Field;
 
+/**
+ * Represents field-related properties, when accessing database
+ *
+ * @author Margus
+ *
+ */
 public class FieldProperties {
 	public String columnName;
 	public Field field;

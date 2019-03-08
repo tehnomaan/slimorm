@@ -46,7 +46,7 @@ public class SqlQuery {
 				database.bindWhereParameters(stmt, 0, parameters);
 				try(ResultSet rs = stmt.executeQuery()) {
 					ArrayList<T> list = new ArrayList<>();
-					FieldProperties[] fields = getFieldMappers(rs, database.getProperties(entityClass));
+					FieldProperties[] fields = getFieldMappers(rs, database.dialect.getProperties(entityClass));
 					while(rs.next())
 						list.add(buildEntity(entityClass, rs, fields));
 					return list;
@@ -68,7 +68,7 @@ public class SqlQuery {
 				try(ResultSet rs = stmt.executeQuery()) {
 					if (!rs.next())
 						return null;
-					return buildEntity(entityClass, rs, getFieldMappers(rs, database.getProperties(entityClass)));
+					return buildEntity(entityClass, rs, getFieldMappers(rs, database.dialect.getProperties(entityClass)));
 				}
 			}
 		});
@@ -95,7 +95,7 @@ public class SqlQuery {
 	}
 
 	private String getSqlStatement(Class<?> entityClass) {
-		EntityProperties props = database.getProperties(entityClass);
+		EntityProperties props = database.dialect.getProperties(entityClass);
 		if (sql == null)
 			sql = props.sqlSelect;
 		if (whereExpression != null)

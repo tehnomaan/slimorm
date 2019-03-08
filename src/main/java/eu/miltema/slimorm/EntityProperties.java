@@ -8,6 +8,13 @@ import javax.persistence.*;
 
 import eu.miltema.slimorm.dialect.Dialect;
 
+/**
+ * Represents field-related properties, when accessing database.
+ * This class is essentially a cache for these properties, since the initialization of the properties can be time-consuming.
+ *
+ * @author Margus
+ *
+ */
 public class EntityProperties {
 
 	private String tableName;

@@ -36,4 +36,6 @@ public interface Dialect {
 	String getSqlForDelete(String tableName);
 	String getSqlForSelect(String tableName, Collection<String> columns);
 	String getSqlForWhere(String tableName, String idColumn);
+
+	EntityProperties getProperties(Class<?> entityClass);
 }

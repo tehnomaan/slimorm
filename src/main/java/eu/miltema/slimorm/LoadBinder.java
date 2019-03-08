@@ -3,12 +3,19 @@ package eu.miltema.slimorm;
 import java.sql.ResultSet;
 
 /**
- * Binds a column from ResultSet into an entity field
+ * Extracts a value from ResultSet into and converts it to suitable Java type
  *
  * @author Margus
  *
  */
 @FunctionalInterface
 public interface LoadBinder {
-	Object convert(ResultSet rs, int i) throws Exception;
+	/**
+	 * Extracts a value from ResultSet into and converts it to suitable Java type
+	 * @param rs resultset
+	 * @param index column index (1-based)
+	 * @return resulting value
+	 * @throws Exception
+	 */
+	Object convert(ResultSet rs, int index) throws Exception;
 }

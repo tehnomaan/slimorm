@@ -96,6 +96,28 @@ Employee[] entities = db.transaction((db, connection) -> {
 SlimORM manages the connection itself - no need to close, commit or rollback the connection.
 It is possible to return an object of any type from the transaction.
 
+# SQL Dialects
+
+By default, SlimORM uses PostgreSQL dialect. If that dialect is causing problems, You must implement a custom dialect and a superclass of Database:
+
+```java
+public class MySqlDialect extends DefaultDialect {
+	... // override any methods that cause problems
+}
+public class MySqlDatabase extends Database {
+	@Override
+	public Dialect getDialect() {
+		return MySqlDialect();
+	}
+}
+```
+
+And when establishing database link, don't forget to use Your custom database class instead of Database:
+
+```java
+Database db = new MySqlDatabase("org.postgresql.Driver", "jdbc:postgresql://localhost:5432/demoDB", "demouser", "password");
+```
+
 # Deploying to Maven Central
 * Install GnuPG from https://www.gnupg.org/download/ .
 * In environment, set GRADLE\_USER\_HOME=C:/directory-for-gradle.properties

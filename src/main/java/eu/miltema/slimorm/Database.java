@@ -6,6 +6,8 @@ import java.util.*;
 import javax.naming.*;
 import javax.sql.DataSource;
 
+import eu.miltema.slimorm.dialect.*;
+
 /**
  * Database link for subsequent CRUD operations
  *
@@ -14,6 +16,9 @@ import javax.sql.DataSource;
  */
 public class Database {
 
+	private static Map<Class<? extends Database>, Dialect> mapDialects = new HashMap<>();
+
+	private Dialect dialect;
 	private DatabaseConnectionFactory connFactory;
 	private Connection txConnection;//connection for current transaction; when not in transaction context, this field is null
 	private Map<Class<?>, EntityProperties> entityProps = new HashMap<>();
@@ -24,6 +29,7 @@ public class Database {
 	 */
 	public Database(DataSource dataSource) {
 		connFactory = () -> dataSource.getConnection();
+		initDialect();
 	}
 
 	/**
@@ -32,6 +38,7 @@ public class Database {
 	 */
 	public Database(DatabaseConnectionFactory connectionFactory) {
 		this.connFactory = connectionFactory;
+		initDialect();
 	}
 
 	/**
@@ -43,6 +50,7 @@ public class Database {
 		Context ctx = new InitialContext();
 		DataSource dataSource = (DataSource)ctx.lookup(jndiName);
 		connFactory = () -> dataSource.getConnection();
+		initDialect();
 	}
 
 	/**
@@ -56,6 +64,7 @@ public class Database {
 	public Database(String driverName, String jdbcUrl, String username, String password) throws Exception {
 		Class.forName(driverName).newInstance();
 		connFactory = () -> DriverManager.getConnection(jdbcUrl, username, password);
+		initDialect();
 	}
 
 	/**
@@ -257,13 +266,13 @@ public class Database {
 			for(Object whereParam : whereParameters)
 				if (whereParam == null)
 					stmt.setNull(++ordinal, Types.VARCHAR);
-				else JdbcBinders.instance.saveBinders.get(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+				else dialect.getSaveBinder(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
 	}
 
 	EntityProperties getProperties(Class<?> entityClass) {
 		EntityProperties props = entityProps.get(entityClass);
 		if (props == null)
-			entityProps.put(entityClass, props = new EntityProperties(entityClass));
+			entityProps.put(entityClass, props = new EntityProperties(entityClass, dialect));
 		return props;
 	}
 
@@ -275,5 +284,16 @@ public class Database {
 		try(Connection connection = connFactory.getConnection()) {
 			return statements.statements(this, connection);
 		}
+	}
+
+	public Dialect getDialect() {
+		return new DefaultDialect();
+	}
+
+	private void initDialect() {
+		Class<? extends Database> clazz = getClass();
+		dialect = mapDialects.get(clazz);
+		if (dialect == null)
+			mapDialects.put(clazz, dialect = getDialect());
 	}
 }

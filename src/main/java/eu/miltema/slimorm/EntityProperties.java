@@ -6,6 +6,8 @@ import static java.util.stream.Collectors.*;
 
 import javax.persistence.*;
 
+import eu.miltema.slimorm.dialect.Dialect;
+
 public class EntityProperties {
 
 	private String tableName;
@@ -15,13 +17,13 @@ public class EntityProperties {
 	FieldProperties idField;
 	String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere;
 
-	public EntityProperties(Class<?> clazz) {
-		initFields(clazz);
-		initTableName(clazz);
-		initSqlStatements(clazz);
+	public EntityProperties(Class<?> clazz, Dialect dialect) {
+		initFields(clazz, dialect);
+		tableName = dialect.getTableName(clazz);
+		initSqlStatements(clazz, dialect);
 	}
 
-	private void initFields(Class<?> clazz) {
+	private void initFields(Class<?> clazz, Dialect dialect) {
 		while(clazz != Object.class) {
 			for(Field field : clazz.getDeclaredFields()) {
 				if ((field.getModifiers() & Modifier.TRANSIENT) != 0)
@@ -32,16 +34,15 @@ public class EntityProperties {
 
 				FieldProperties props = new FieldProperties();
 				props.field = field;
-				Column column = field.getAnnotation(Column.class);
-				props.columnName = (column != null && !column.name().isEmpty() ? column.name() : toSnakeCase(field.getName()));
+				props.columnName = dialect.getColumnName(field);
 				if (field.getAnnotation(Id.class) != null) {
 					idField = props;
 					props.isMutable = false;
 				}
-				props.saveBinder = JdbcBinders.instance.saveBinders.get(field.getType());
+				props.saveBinder = dialect.getSaveBinder(field.getType());
 				if (props.saveBinder == null)
 					throw new RuntimeException("Unsupported field type for field " + field.getName());
-				props.loadBinder = JdbcBinders.instance.loadBinders.get(field.getType());
+				props.loadBinder = dialect.getLoadBinder(field.getType());
 				fields.add(props);
 				if (props.isMutable)
 					mutableFields.add(props);
@@ -51,27 +52,14 @@ public class EntityProperties {
 		}
 	}
 
-	private String toSnakeCase(String s) {
-		return s.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
-		
-	}
-
-	private void initTableName(Class<?> clazz) {
-		Table table = clazz.getAnnotation(Table.class);
-		tableName = (table != null && !table.name().isEmpty() ? table.name() : toSnakeCase(clazz.getSimpleName()));
-	}
-
-	public void initSqlStatements(Class<?> clazz) {
+	public void initSqlStatements(Class<?> clazz, Dialect dialect) {
 		Collection<String> mutableColumns = mutableFields.stream().map(field -> field.columnName).collect(toList());
-		sqlInsert = "INSERT INTO " + tableName + "(" +
-				mutableColumns.stream().collect(joining(",")) +
-				") VALUES (" +
-				mutableColumns.stream().map(column -> "?").collect(joining(",")) +")";
-		sqlUpdate = "UPDATE " + tableName + " SET " +
-				mutableColumns.stream().map(column -> column + "=?").collect(joining(","));
-		sqlDelete = "DELETE FROM " + tableName;
-		sqlSelect = "SELECT * FROM " + tableName;
+		Collection<String> columns = fields.stream().map(field -> field.columnName).collect(toList());
+		sqlInsert = dialect.getSqlForInsert(tableName, mutableColumns);
+		sqlUpdate = dialect.getSqlForUpdate(tableName, mutableColumns);
+		sqlDelete = dialect.getSqlForDelete(tableName);
+		sqlSelect = dialect.getSqlForSelect(tableName, columns);
 		if (idField != null)
-			sqlWhere = idField.columnName + "=?";
+			sqlWhere = dialect.getSqlForWhere(tableName, idField.columnName);
 	}
 }

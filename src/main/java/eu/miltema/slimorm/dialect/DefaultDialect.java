@@ -1,22 +1,26 @@
-package eu.miltema.slimorm;
+package eu.miltema.slimorm.dialect;
 
 import static java.sql.Types.*;
+import static java.util.stream.Collectors.joining;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.time.*;
+import java.util.Collection;
 import java.util.HashMap;
 
-public class JdbcBinders {
+import javax.persistence.Column;
+import javax.persistence.Table;
 
-	static final JdbcBinders instance = new JdbcBinders();
+import eu.miltema.slimorm.*;
+
+public class DefaultDialect implements Dialect {
 
 	HashMap<Class<?>, SaveBinder> saveBinders = new HashMap<>();
 	HashMap<Class<?>, LoadBinder> loadBinders = new HashMap<>();
 
-	public JdbcBinders() {
+	public DefaultDialect() {
 		saveBinders.put(Byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
 		saveBinders.put(byte.class, (stmt, i, param) -> stmt.setInt(i, ((Byte)param).intValue() & 255));
 		saveBinders.put(Short.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Short)param).intValue());});
@@ -65,7 +69,63 @@ public class JdbcBinders {
 		loadBinders.put(BigDecimal.class, (rs, i) -> rs.getBigDecimal(i));
 	}
 
-	private <T> T nvl(T value, ResultSet rs) throws SQLException {
+	protected <T> T nvl(T value, ResultSet rs) throws SQLException {
 		return (rs.wasNull() ? null : value);
+	}
+
+	@Override
+	public LoadBinder getLoadBinder(Class<?> fieldType) {
+		return loadBinders.get(fieldType);
+	}
+
+	@Override
+	public SaveBinder getSaveBinder(Class<?> fieldType) {
+		return saveBinders.get(fieldType);
+	}
+
+	protected String toSnakeCase(String s) {
+		return s.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
+		
+	}
+
+	@Override
+	public String getTableName(Class<?> clazz) {
+		Table table = clazz.getAnnotation(Table.class);
+		return (table != null && !table.name().isEmpty() ? table.name() : toSnakeCase(clazz.getSimpleName()));
+	}
+
+	@Override
+	public String getColumnName(Field field) {
+		Column column = field.getAnnotation(Column.class);
+		return (column != null && !column.name().isEmpty() ? column.name() : toSnakeCase(field.getName()));
+	}
+
+	@Override
+	public String getSqlForInsert(String tableName, Collection<String> mutableColumns) {
+		return "INSERT INTO " + tableName + "(" +
+				mutableColumns.stream().collect(joining(",")) +
+				") VALUES (" +
+				mutableColumns.stream().map(column -> "?").collect(joining(",")) +")";
+	}
+
+	@Override
+	public String getSqlForUpdate(String tableName, Collection<String> mutableColumns) {
+		return "UPDATE " + tableName + " SET " +
+				mutableColumns.stream().map(column -> column + "=?").collect(joining(","));
+	}
+
+	@Override
+	public String getSqlForDelete(String tableName) {
+		return "DELETE FROM " + tableName;
+	}
+
+	@Override
+	public String getSqlForSelect(String tableName, Collection<String> columns) {
+		return "SELECT * FROM " + tableName;
+	}
+
+	@Override
+	public String getSqlForWhere(String tableName, String idColumn) {
+		return idColumn + "=?";
 	}
 }

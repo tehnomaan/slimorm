@@ -14,12 +14,6 @@ Establish database link:
 Database db = new Database("org.postgresql.Driver", "jdbc:postgresql://localhost:5432/demoDB", "demouser", "password");
 ```
 
-Or use this, if You have declared database access via JNDI (for example, in a web application):
-
-```java
-Database db = new Database("jdbc/demoDB");
-```
-
 Insert a new record:
 
 ```java
@@ -42,10 +36,10 @@ Delete the record (based on id):
 db.delete(Employee.class, employee.id);
 ```
 
-Get a specific record (based on id):
+Get a specific record from database (based on id):
 
 ```java
-Employee employee = db.get(Employee.class, id);
+Employee employee = db.getById(Employee.class, id);
 ```
 
 Get a list of records with SQL filter:
@@ -130,7 +124,7 @@ gradle build
 # History
 
 I first started with a custom ORM library probably around 2003, mostly for PostgreSQL.
-Then at some point I found https://github.com/dieselpoint/norm, which had pretty similar logic and usage to my own library.
+Then at some point I found https://github.com/dieselpoint/norm, which had pretty similar logic and API to my own library.
 Norm was written for MySQL and worked rather well with PostgreSQL, although multiple issues emerged.
 Some of those issues I was able to handle and I used Norm in many projects. But a number of issues still remained unsolved. 
-Finally I decided, that it is easier to continue with my own library - SlimORM. SlimORM interface has been influenced by Norm.
+Finally I decided, that it is easier to continue with my own library - SlimORM, which now has some Norm influences.

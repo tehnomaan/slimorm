@@ -7,7 +7,7 @@ import javax.naming.*;
 import javax.sql.DataSource;
 
 /**
- * Database connector
+ * Database link for subsequent CRUD operations
  *
  * @author Margus
  *
@@ -49,8 +49,8 @@ public class Database {
 	 * Create database with simple non-pooled connections
 	 * @param driverName driver class name, for example "org.postgresql.Driver"
 	 * @param jdbcUrl database URL, for example "jdbc:postgresql://localhost:5432/demoDB"
-	 * @param username
-	 * @param password
+	 * @param username SQL username
+	 * @param password SQL password
 	 * @throws Exception
 	 */
 	public Database(String driverName, String jdbcUrl, String username, String password) throws Exception {
@@ -58,9 +58,15 @@ public class Database {
 		connFactory = () -> DriverManager.getConnection(jdbcUrl, username, password);
 	}
 
+	/**
+	 * Insert a single entity into database
+	 * @param entity entity to insert
+	 * @return the same entity, with @Id field (if any) being initialized
+	 * @throws Exception
+	 */
 	public <T> T insert(T entity) throws Exception {
-		runStatements((db, conn) -> {
-			EntityProperties props = getProperties(entity.getClass());
+		EntityProperties props = getProperties(entity.getClass());
+		return runStatements((db, conn) -> {
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
 				bindMutableParameters(entity, props, stmt);
 				stmt.executeUpdate();
@@ -72,17 +78,57 @@ public class Database {
 			}
 			return entity;
 		});
-		return entity;
 	}
 
-	public <T> T update(T entity) throws Exception {
+	/**
+	 * Insert a collection of entities into database as a batch. Batch insertion is faster than inserting one by one.
+	 * @param entities collection of entities to insert
+	 * @return the same entities, with @Id field (if any) being initialized
+	 * @throws Exception
+	 */
+	public <T> Collection<T> insertBatch(Collection<T> entities) throws Exception {
+		if (entities.isEmpty())
+			return entities;
+		Object[] array = entities.stream().toArray();
+		EntityProperties props = getProperties(array[0].getClass());
+		return runStatements((db, conn) -> {
+			try(PreparedStatement stmt = conn.prepareStatement(props.sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
+				for(int i = 0; i < array.length; i++) {
+					bindMutableParameters(array[i], props, stmt);
+					stmt.addBatch();
+				}
+				stmt.executeBatch();
+				if (props.idField != null && !props.idField.isMutable) {//if auto-generated key is declared
+					ResultSet rs = stmt.getGeneratedKeys();
+					int ordinal = 0;
+					while(rs.next())
+						props.idField.field.set(array[ordinal++], rs.getObject(1));
+				}
+			}
+			return entities;
+		});
+	}
+
+	/**
+	 * Update an existing entity in database. Only entities with @Id field can be updated. When @Id field is missing, use method update(entity, whereExpression, whereParameters)
+	 * @param entity entity with new attribute values
+	 * @throws Exception
+	 */
+	public void update(Object entity) throws Exception {
 		EntityProperties props = getProperties(entity.getClass());
 		if (props.idField == null)
 			throw new Exception("Missing @Id field in " + entity.getClass().getSimpleName());
-		return update(entity, props.sqlWhere, props.idField.field.get(entity));
+		update(entity, props.sqlWhere, props.idField.field.get(entity));
 	}
 
-	public <T> T update(T entity, String whereExpression, Object ... whereParameters) throws Exception {
+	/**
+	 * Update an existing entity in database. If WHERE expression selects multiple records, then all these records will be updated with new attribute values (except the @Id field).
+	 * @param entity entity with new attribute values
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @param whereParameters parameters for WHERE expression
+	 * @throws Exception
+	 */
+	public void update(Object entity, String whereExpression, Object ... whereParameters) throws Exception {
 		runStatements((db, conn) -> {
 			EntityProperties props = getProperties(entity.getClass());
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlUpdate + " WHERE " + whereExpression)) {
@@ -92,32 +138,60 @@ public class Database {
 			}
 			return entity;
 		});
-		return entity;
 	}
-	
+
+	/**
+	 * Delete an existing record
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param id entity id
+	 * @return true, if the record existed before deletion; false, if the record did not exist
+	 * @throws Exception
+	 */
 	public boolean delete(Class<?> entityClass, Object id) throws Exception {
 		EntityProperties props = getProperties(entityClass);
 		if (props.idField == null)
 			throw new Exception("Missing @Id field in " + entityClass.getSimpleName());
-		return delete(entityClass, props.sqlWhere, id);
+		return delete(entityClass, props.sqlWhere, id) > 0;
 	}
-	
-	public boolean delete(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
+
+	/**
+	 * Delete multiple records
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @param whereParameters parameters for WHERE expression
+	 * @return number of records deleted
+	 * @throws Exception
+	 */
+	public int delete(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
 		return runStatements((db, conn) -> {
 			EntityProperties props = getProperties(entityClass);
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlDelete + " WHERE " + whereExpression)) {
 				bindWhereParameters(stmt, 0, whereParameters);
 				return stmt.executeUpdate();
 			}
-		}) > 0;
+		});
 	}
 
-	public SqlQuery sql(String sql, Object ... whereParameters) throws Exception {
-		SqlQuery q = new SqlQuery(this, sql);
+	/**
+	 * Prepare a SELECT query
+	 * @param sqlSelect SQL SELECT statement
+	 * @param whereParameters parameter values for WHERE expression
+	 * @return query object for fetching the results
+	 * @throws Exception
+	 */
+	public SqlQuery sql(String sqlSelect, Object ... whereParameters) throws Exception {
+		SqlQuery q = new SqlQuery(this, sqlSelect);
 		q.parameters = whereParameters;
 		return q;
 	}
 
+	/**
+	 * Prepare a SELECT query with WHERE filter only. Subsequent fetch operation (get or list) determines database table for this query
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @param whereParameters parameter values for WHERE expression
+	 * @return query object for fetching the results
+	 * @throws Exception
+	 */
 	public SqlQuery where(String whereExpression, Object ... whereParameters) throws Exception {
 		SqlQuery q = new SqlQuery(this, null);
 		q.whereExpression = whereExpression;
@@ -125,14 +199,33 @@ public class Database {
 		return q;
 	}
 
-	public <T> Collection<T> listAll(Class<? extends T> entityClass) throws Exception {
+	/**
+	 * Fetch all records/entities from a database table into a list
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @return list of entities
+	 * @throws Exception
+	 */
+	public <T> List<T> listAll(Class<? extends T> entityClass) throws Exception {
 		return new SqlQuery(this, getProperties(entityClass).sqlSelect).list(entityClass);
 	}
 
-	public <T> T get(Class<? extends T> entityClass, Object id) throws Exception {
-		return where(getProperties(entityClass).sqlWhere, id).first(entityClass);
+	/**
+	 * Fetch a single record/entity from a database table
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param id entity id
+	 * @return entity; returns null, if id refers to non-existing record
+	 * @throws Exception
+	 */
+	public <T> T getById(Class<? extends T> entityClass, Object id) throws Exception {
+		return where(getProperties(entityClass).sqlWhere, id).fetch(entityClass);
 	}
 
+	/**
+	 * Runs a bunch of statements in a single transaction
+	 * @param statements statements to run
+	 * @return the return value from statements
+	 * @throws Exception
+	 */
 	synchronized public <T> T transaction(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
 			throw new RuntimeException("Nested transactions are not supported");

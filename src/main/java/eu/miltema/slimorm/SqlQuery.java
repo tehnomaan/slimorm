@@ -4,23 +4,43 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Stream;
 
+/**
+ * A convenience class for building SQL query
+ *
+ * @author Margus
+ *
+ */
 public class SqlQuery {
 
 	private Database database;
 	String sql;
 	String whereExpression;
+	String orderBy;
+	String groupBy;
 	Object[] parameters;
 
-	public SqlQuery(Database database, String sql) {
+	SqlQuery(Database database, String sql) {
 		this.database = database;
 		this.sql = sql;
 	}
 
+	/**
+	 * Return the results as a stream
+	 * @param entityClass target entity class
+	 * @return entities stream
+	 * @throws Exception
+	 */
 	public <T> Stream<? extends T> stream(Class<? extends T> entityClass) throws Exception {
 		return list(entityClass).stream();
 	}
 
-	public <T> Collection<T> list(Class<? extends T> entityClass) throws Exception {
+	/**
+	 * Return the results as a list
+	 * @param entityClass target entity class
+	 * @return entities list
+	 * @throws Exception
+	 */
+	public <T> List<T> list(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
 			try(PreparedStatement stmt = conn.prepareStatement(getSqlStatement(entityClass))) {
 				database.bindWhereParameters(stmt, 0, parameters);
@@ -35,7 +55,13 @@ public class SqlQuery {
 		});
 	}
 
-	public <T> T first(Class<? extends T> entityClass) throws Exception {
+	/**
+	 * Return a single record/entity from the result
+	 * @param entityClass target entity class
+	 * @return entity; if no records where found, null is returned
+	 * @throws Exception
+	 */
+	public <T> T fetch(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
 			try(PreparedStatement stmt = conn.prepareStatement(getSqlStatement(entityClass))) {
 				database.bindWhereParameters(stmt, 0, parameters);
@@ -48,12 +74,36 @@ public class SqlQuery {
 		});
 	}
 
+	/**
+	 * Add an SQL ORDER BY clause to select query
+	 * @param columns columns list for ORDER BY, for example "age DESC, name"
+	 * @return
+	 */
+	public SqlQuery orderBy(String columns) {
+		this.orderBy = columns;
+		return this;
+	}
+
+	/**
+	 * Add an SQL GROUP BY clause to select query
+	 * @param columns columns list for GROUP BY, for example "name, age"
+	 * @return
+	 */
+	public SqlQuery groupBy(String columns) {
+		this.groupBy = columns;
+		return this;
+	}
+
 	private String getSqlStatement(Class<?> entityClass) {
 		EntityProperties props = database.getProperties(entityClass);
 		if (sql == null)
 			sql = props.sqlSelect;
 		if (whereExpression != null)
 			sql += " WHERE " + whereExpression;
+		if (orderBy != null)
+			sql += " ORDER BY " + orderBy;
+		if (groupBy != null)
+			sql += " GROUP BY " + groupBy;
 		return sql;
 	}
 

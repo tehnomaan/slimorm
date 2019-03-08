@@ -1,5 +1,5 @@
 # SlimORM
-SlimORM is a lightweight Java ORM library.
+SlimORM is a lightweight Java ORM library, based on JDBC.
 
 Why yet another ORM library, when we have popular ORM libraries already?
 Because sometimes, You just don't want the complexity of those popular libraries.
@@ -133,4 +133,4 @@ I first started with a custom ORM library probably around 2003, mostly for Postg
 Then at some point I found https://github.com/dieselpoint/norm, which had pretty similar logic and usage to my own library.
 Norm was written for MySQL and worked rather well with PostgreSQL, although multiple issues emerged.
 Some of those issues I was able to handle and I used Norm in many projects. But a number of issues still remained unsolved. 
-Finally I concluded, that it is easier to continue with my own library - SlimORM.
+Finally I decided, that it is easier to continue with my own library - SlimORM. SlimORM interface has been influenced by Norm.

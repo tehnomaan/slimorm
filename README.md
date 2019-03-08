@@ -103,9 +103,6 @@ It is possible to return an object of any type from the transaction.
 * File gradle.properties should look like this:
 
 ```
-signing.keyId=ECCAD9C3
-signing.password=kala1234
-signing.secretKeyRingFile=C:/path/to/secring.gpg
 signing.gnupg.executable=gpg
 signing.gnupg.useLegacyGpg=true
 signing.gnupg.keyName=ECCAD9C3

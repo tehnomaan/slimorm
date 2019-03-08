@@ -115,7 +115,7 @@ public class MySqlDatabase extends Database {
 And when establishing database link, don't forget to use Your custom database class instead of Database:
 
 ```java
-Database db = new MySqlDatabase("org.postgresql.Driver", "jdbc:postgresql://localhost:5432/demoDB", "demouser", "password");
+Database db = new MySqlDatabase(dbDriver, dbUrl, dbUser, dbPassword);
 ```
 
 # Deploying to Maven Central

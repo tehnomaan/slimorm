@@ -4,9 +4,9 @@ import static org.junit.Assert.*;
 
 import java.io.*;
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.List;
+import static java.util.stream.Collectors.*;
+import java.util.stream.*;
 
 import org.junit.*;
 
@@ -79,17 +79,26 @@ public class TestWrite {
 		e1.count = 3;
 		SlimTestEntity e2 = new SlimTestEntity();
 		e2.name = "Ann";
-		Collection<SlimTestEntity> entities = db.insertBatch(Stream.of(e1, e2).collect(Collectors.toList()));
+		List<SlimTestEntity> entities = db.insertBatch(Stream.of(e1, e2).collect(toList()));
+		assertEquals(e1.name, entities.get(0).name);
+		assertNotNull(e1.id);
+		assertNotNull(e2.id);
 		e1 = db.getById(SlimTestEntity.class, e1.id);
 		assertEquals("Mary", e1.name);
 		assertEquals((Integer) 3, e1.count);
 		e2 = db.getById(SlimTestEntity.class, e2.id);
-		assertEquals("Mary", e2.name);
+		assertEquals("Ann", e2.name);
 		assertNull(e2.count);
 	}
 
 	@Test
-	public void testZZZ() throws Exception {
-		
+	public void testLargeBatch() throws Exception {
+		List<SlimTestEntity> list = IntStream.range(1, 10000).mapToObj(i -> {
+			SlimTestEntity ste = new SlimTestEntity();
+			ste.name = "nimi" + i;
+			ste.count = i;
+			return ste;
+		}).collect(toList());
+		db.insertBatch(list);
 	}
 }

@@ -106,8 +106,12 @@ public class DefaultDialect implements Dialect {
 	public String getSqlForInsert(String tableName, Collection<String> mutableColumns) {
 		return "INSERT INTO " + tableName + "(" +
 				mutableColumns.stream().collect(joining(",")) +
-				") VALUES (" +
-				mutableColumns.stream().map(column -> "?").collect(joining(",")) +")";
+				") VALUES ";
+	}
+
+	@Override
+	public String getSqlForValuesClause(String tableName, Collection<String> mutableColumns) {
+		return "(" + mutableColumns.stream().map(column -> "?").collect(joining(",")) +")";
 	}
 
 	@Override

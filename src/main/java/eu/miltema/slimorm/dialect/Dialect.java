@@ -31,7 +31,22 @@ public interface Dialect {
 	 */
 	String getColumnName(Field field);
 
+	/**
+	 * This method provides the leading part of INSERT-statement, up until VALUES-word (inclusive)
+	 * @param tableName table name
+	 * @param mutableColumns names of mutable columns
+	 * @return part of INSERT-statement without value parenthesis, for example "INSERT INTO mytable VALUES" 
+	 */
 	String getSqlForInsert(String tableName, Collection<String> mutableColumns);
+
+	/**
+	 * This method provides value placeholders in parenthesis
+	 * @param tableName table name
+	 * @param mutableColumns names of mutable columns
+	 * @return for example "(?, ?, ?)"
+	 */
+	String getSqlForValuesClause(String tableName, Collection<String> mutableColumns);
+
 	String getSqlForUpdate(String tableName, Collection<String> mutableColumns);
 	String getSqlForDelete(String tableName);
 	String getSqlForSelect(String tableName, Collection<String> columns);

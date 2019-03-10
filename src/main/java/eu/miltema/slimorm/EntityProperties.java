@@ -22,7 +22,7 @@ public class EntityProperties {
 	Collection<FieldProperties> mutableFields = new ArrayList<>();//transient fields excluded
 	Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
 	FieldProperties idField;
-	String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere;
+	String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
 		initFields(clazz, dialect);
@@ -63,6 +63,7 @@ public class EntityProperties {
 		Collection<String> mutableColumns = mutableFields.stream().map(field -> field.columnName).collect(toList());
 		Collection<String> columns = fields.stream().map(field -> field.columnName).collect(toList());
 		sqlInsert = dialect.getSqlForInsert(tableName, mutableColumns);
+		sqlInsertValues = dialect.getSqlForValuesClause(tableName, mutableColumns);
 		sqlUpdate = dialect.getSqlForUpdate(tableName, mutableColumns);
 		sqlDelete = dialect.getSqlForDelete(tableName);
 		sqlSelect = dialect.getSqlForSelect(tableName, columns);

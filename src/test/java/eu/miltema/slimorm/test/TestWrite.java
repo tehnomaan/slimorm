@@ -54,7 +54,7 @@ public class TestWrite extends AbstractDatabaseTest {
 	}
 
 	@Test
-	public void testInsertBatch() throws Exception {
+	public void testBulk() throws Exception {
 		List<SlimTestEntity> entities = db.bulkInsert(Stream.of(new SlimTestEntity("Mary", 3), new SlimTestEntity("Ann", null)).collect(toList()));
 		assertEquals("Mary", entities.get(0).name);
 		assertEquals("Ann", entities.get(1).name);
@@ -69,9 +69,10 @@ public class TestWrite extends AbstractDatabaseTest {
 	}
 
 	@Test
-	public void testLargeBatch() throws Exception {
-		List<SlimTestEntity> list = IntStream.range(1, 10000).mapToObj(i -> new SlimTestEntity("nimi" + i, i)).collect(toList());
-		db.bulkInsert(list);
+	public void testLargeBulkInsert() throws Exception {
+		List<SlimTestEntity> list = IntStream.rangeClosed(1, 10000).mapToObj(i -> new SlimTestEntity("nimi" + i, i)).collect(toList());
+		list = db.bulkInsert(list);
+		assertEquals(10000, list.stream().map(e -> e.id).collect(toSet()).size());
 	}
 
 	@Test

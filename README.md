@@ -118,6 +118,15 @@ And when establishing database link, don't forget to use Your custom database cl
 Database db = new MySqlDatabase(dbDriver, dbUrl, dbUser, dbPassword);
 ```
 
+# Data Types
+
+The developer is responsible of selecting Java type and corresponding SQL data byte, which must match. By default, SlimORM supports these Java types by default:
+String, byte, Byte, short, Short, int, Integer, long, Long, float, Float, double, Double, BigDecimal, byte[], Timestamp, Instant, Date, LocalDate, LocalDateTime, ZonedDateTime.
+
+Be aware that PostgreSQL does not store timezone id into record (even when data type is _with time zone_). Therefore, all time-related columns store correct instant in time, but have lost the original timezone id.
+
+For data types not listed above, one must superclass DefaultDialect and provide custom saveBinder and loadBinder. 
+
 # Deploying to Maven Central
 * Install GnuPG from https://www.gnupg.org/download/ .
 * In environment, set GRADLE\_USER\_HOME=C:/directory-for-gradle.properties

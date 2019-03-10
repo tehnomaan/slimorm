@@ -7,9 +7,11 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -43,8 +45,8 @@ public class DefaultDialect implements Dialect {
 		saveBinders.put(java.util.Date.class, (stmt, i, param) -> stmt.setTimestamp(i, (param == null ? null : new Timestamp(((java.util.Date)param).getTime()))));
 		saveBinders.put(LocalDateTime.class, (stmt, i, param) -> stmt.setTimestamp(i, (param == null ? null : Timestamp.valueOf((LocalDateTime)param))));
 		saveBinders.put(LocalDate.class, (stmt, i, param) -> stmt.setDate(i, (param == null ? null : java.sql.Date.valueOf((LocalDate)param))));
+		saveBinders.put(ZonedDateTime.class, sbZonedDateTime);
 		saveBinders.put(byte[].class, (stmt, i, param) -> stmt.setBytes(i, (byte[])param));
-//		saveBinders.put(String[].class, (stmt, i, param) -> stmt.setArray(i, stmt.getConnection().createArrayOf("text", (String[]) param)));
 		saveBinders.put(BigDecimal.class, (stmt, i, param) -> stmt.setBigDecimal(i, (BigDecimal)param));
 
 		loadBinders.put(Byte.class, (rs, i) -> nvl(new Byte((byte) rs.getInt(i)), rs));
@@ -64,12 +66,21 @@ public class DefaultDialect implements Dialect {
 		loadBinders.put(String.class, (rs, i) -> rs.getString(i));
 		loadBinders.put(Timestamp.class, (rs, i) -> rs.getTimestamp(i));
 		loadBinders.put(Instant.class, (rs, i) -> {Timestamp ts = rs.getTimestamp(i); return (ts == null ? null : ts.toInstant());});
-		loadBinders.put(java.util.Date.class, (rs, i) -> {Timestamp ts = rs.getTimestamp(i); return (ts == null ? null : new java.util.Date(ts.getTime()));});
 		loadBinders.put(LocalDateTime.class, (rs, i) -> {Timestamp ts = rs.getTimestamp(i); return (ts == null ? null : ts.toLocalDateTime());});
 		loadBinders.put(LocalDate.class, (rs, i) -> {Timestamp ts = rs.getTimestamp(i); return (ts == null ? null : ts.toLocalDateTime().toLocalDate());});
+		loadBinders.put(ZonedDateTime.class, (rs, i) -> {OffsetDateTime odt = rs.getObject(i, OffsetDateTime.class); return (odt == null ? null : odt.toZonedDateTime());});
 		loadBinders.put(byte[].class, (rs, i) -> rs.getBytes(i));
 		loadBinders.put(BigDecimal.class, (rs, i) -> rs.getBigDecimal(i));
 	}
+
+	private SaveBinder sbZonedDateTime = (stmt, i, param) -> {
+		if (param != null) {
+			ZonedDateTime zdt = (ZonedDateTime) param;
+			TimeZone tz = TimeZone.getTimeZone(zdt.getZone());
+			stmt.setTimestamp(i, Timestamp.from(zdt.toInstant()), Calendar.getInstance(tz));
+		}
+		else stmt.setTimestamp(i, null);
+	};
 
 	protected <T> T nvl(T value, ResultSet rs) throws SQLException {
 		return (rs.wasNull() ? null : value);

@@ -27,17 +27,12 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testInsertReturnsKey() throws Exception {
-		SlimTestEntity e = new SlimTestEntity();
-		e.name = "John";
-		db.insert(e);
-		assertNotNull(e.id);
+		assertNotNull(db.insert(new SlimTestEntity("John", null)).id);
 	}
 	
 	@Test
 	public void testInsertedFields() throws Exception {
-		SlimTestEntity e = new SlimTestEntity();
-		e.name = "John";
-		db.insert(e);
+		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
 		e = db.getById(SlimTestEntity.class, e.id);
 		assertEquals("John", e.name);
 		assertNull(e.count);
@@ -45,9 +40,7 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testUpdate() throws Exception {
-		SlimTestEntity e = new SlimTestEntity();
-		e.name = "John";
-		db.insert(e);
+		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
 		e.name = "Peter";
 		e.count = 4;
 		db.update(e);
@@ -62,68 +55,50 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testInsertBatch() throws Exception {
-		SlimTestEntity e1 = new SlimTestEntity();
-		e1.name = "Mary";
-		e1.count = 3;
-		SlimTestEntity e2 = new SlimTestEntity();
-		e2.name = "Ann";
-		List<SlimTestEntity> entities = db.bulkInsert(Stream.of(e1, e2).collect(toList()));
-		assertEquals(e1.name, entities.get(0).name);
-		assertNotNull(e1.id);
-		assertNotNull(e2.id);
-		e1 = db.getById(SlimTestEntity.class, e1.id);
+		List<SlimTestEntity> entities = db.bulkInsert(Stream.of(new SlimTestEntity("Mary", 3), new SlimTestEntity("Ann", null)).collect(toList()));
+		assertEquals("Mary", entities.get(0).name);
+		assertEquals("Ann", entities.get(1).name);
+		assertNotNull(entities.get(0).id);
+		assertNotNull(entities.get(1).id);
+		SlimTestEntity e1 = db.getById(SlimTestEntity.class, entities.get(0).id);
 		assertEquals("Mary", e1.name);
 		assertEquals((Integer) 3, e1.count);
-		e2 = db.getById(SlimTestEntity.class, e2.id);
+		SlimTestEntity e2 = db.getById(SlimTestEntity.class, entities.get(1).id);
 		assertEquals("Ann", e2.name);
 		assertNull(e2.count);
 	}
 
 	@Test
 	public void testLargeBatch() throws Exception {
-		List<SlimTestEntity> list = IntStream.range(1, 10000).mapToObj(i -> {
-			SlimTestEntity ste = new SlimTestEntity();
-			ste.name = "nimi" + i;
-			ste.count = i;
-			return ste;
-		}).collect(toList());
+		List<SlimTestEntity> list = IntStream.range(1, 10000).mapToObj(i -> new SlimTestEntity("nimi" + i, i)).collect(toList());
 		db.bulkInsert(list);
 	}
 
 	@Test
 	public void testDelete() throws Exception {
-		SlimTestEntity e = new SlimTestEntity();
-		e.name = "John";
-		db.insert(e);
-		db.delete(SlimTestEntity.class, e.id);
-		assertNull(db.getById(SlimTestEntity.class, e.id));
+		Integer id = db.insert(new SlimTestEntity("John", null)).id;
+		db.delete(SlimTestEntity.class, id);
+		assertNull(db.getById(SlimTestEntity.class, id));
 	}
 
 	@Test
 	public void testDeleteWhere() throws Exception {
 		deleteAll();
-		db.bulkInsert(IntStream.rangeClosed(1, 10).mapToObj(i -> {
-			SlimTestEntity e = new SlimTestEntity();
-			e.name = "Mary";
-			e.count = i;
-			return e;
-		}).collect(toList()));
+		db.bulkInsert(IntStream.rangeClosed(1, 10).mapToObj(i -> new SlimTestEntity("Mary", i)).collect(toList()));
 		assertEquals(4, db.deleteWhere(SlimTestEntity.class, "count>=?", 7));
 	}
 
 	@Test
 	public void testSuccessfulTransaction() throws Exception {
-		SlimTestEntity e1 = db.transaction((db, connection) -> {
-			SlimTestEntity e = new SlimTestEntity();
-			e.name = "John";
-			db.insert(e);
+		Integer id = db.transaction((db, connection) -> {
+			SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
 			e.name = "Peter";
 			e.count = 4;
 			db.update(e);
-			return e;
+			return e.id;
 		});
-		e1 = db.getById(SlimTestEntity.class, e1.id);
-		assertEquals(4, e1.count.intValue());
+		SlimTestEntity e = db.getById(SlimTestEntity.class, id);
+		assertEquals(4, e.count.intValue());
 	}
 	
 	@Test(expected = TestWriteException.class)
@@ -131,12 +106,9 @@ public class TestWrite extends AbstractDatabaseTest {
 		deleteAll();
 		try {
 			db.transaction((db, connection) -> {
-				SlimTestEntity e = new SlimTestEntity();
-				e.name = "John";
-				e.count = 2;
-				db.insert(e);
+				SlimTestEntity e = db.insert(new SlimTestEntity("John", 2));
 				e.name = "Peter";
-				e.count = 4;
+				e.count = null;
 				db.update(e);
 				throw new TestWriteException();
 			});

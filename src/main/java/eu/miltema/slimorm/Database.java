@@ -98,7 +98,7 @@ public class Database {
 	 * @return the same entities, with @Id field (if any) being initialized
 	 * @throws Exception when anything goes wrong
 	 */
-	public <T> List<T> insertBatch(List<T> entities) throws Exception {
+	public <T> List<T> bulkInsert(List<T> entities) throws Exception {
 		if (entities.isEmpty())
 			return entities;
 		Object[] array = entities.stream().toArray();
@@ -164,7 +164,7 @@ public class Database {
 		EntityProperties props = dialect.getProperties(entityClass);
 		if (props.idField == null)
 			throw new Exception("Missing @Id field in " + entityClass.getSimpleName());
-		return delete(entityClass, props.sqlWhere, id) > 0;
+		return deleteWhere(entityClass, props.sqlWhere, id) > 0;
 	}
 
 	/**
@@ -175,7 +175,7 @@ public class Database {
 	 * @return number of records deleted
 	 * @throws Exception when anything goes wrong
 	 */
-	public int delete(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
+	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
 		return runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entityClass);
 			try(PreparedStatement stmt = conn.prepareStatement(props.sqlDelete + " WHERE " + whereExpression)) {

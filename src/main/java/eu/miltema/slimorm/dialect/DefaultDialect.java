@@ -11,8 +11,6 @@ import java.util.*;
 
 import javax.persistence.*;
 
-import org.postgresql.util.PGobject;
-
 import com.google.gson.Gson;
 
 import eu.miltema.slimorm.*;
@@ -165,9 +163,20 @@ public class DefaultDialect implements Dialect {
 	public SaveBinder getJSonSaveBinder(Class<?> fieldClass) {
 		return (stmt, i, param) -> {
 			if (param != null) {
-				PGobject jobj = new PGobject();
-				jobj.setType("json");
-				jobj.setValue(new Gson().toJson(param));
+				Object jobj;
+				try {
+//					PGobject jobj = new PGobject();
+//					jobj.setType("json");
+//					jobj.setValue(new Gson().toJson(param));
+					// Implement the above logic without the need of dependencies
+					Class<?> clazz = Class.forName("org.postgresql.util.PGobject");
+					jobj = clazz.newInstance();
+					clazz.getMethod("setType", String.class).invoke(jobj, "json");
+					clazz.getMethod("setValue", String.class).invoke(jobj, new Gson().toJson(param));
+				}
+				catch(Exception x) {
+					throw new SQLException(x);
+				}
 				stmt.setObject(i, jobj);
 			}
 			else stmt.setObject(i, null);

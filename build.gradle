@@ -8,8 +8,9 @@ repositories {
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    testCompile 'postgresql:postgresql:9.1-901.jdbc4'
+    testCompile 'org.postgresql:postgresql:42.2.5'
     compile 'javax.persistence:persistence-api:1.0.2'
+    compile 'com.google.code.gson:gson:2.8.5'
 }
 
 task javadocJar(type: Jar) {
@@ -33,19 +34,19 @@ signing {
 
 group = "eu.miltema"
 archivesBaseName = "slimorm"
-version = "0.0.1"
+version = "0.0.10"
 
 uploadArchives {
   repositories {
     mavenDeployer {
       beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: 'ossrhUsername', password: 'ossrhPassword')
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
       }
 
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: 'ossrhUsername', password: 'ossrhPassword')
+      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
       }
 
       pom.project {

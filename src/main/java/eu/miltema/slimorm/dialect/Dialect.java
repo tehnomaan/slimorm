@@ -53,4 +53,7 @@ public interface Dialect {
 	String getSqlForWhere(String tableName, String idColumn);
 
 	EntityProperties getProperties(Class<?> entityClass);
+
+	LoadBinder getJSonLoadBinder(Class<?> fieldClass);
+	SaveBinder getJSonSaveBinder(Class<?> fieldClass);
 }

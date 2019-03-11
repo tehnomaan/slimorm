@@ -14,6 +14,7 @@ public class FieldProperties {
 	public boolean isMutable = true;
 	public SaveBinder saveBinder;
 	public LoadBinder loadBinder;
+	public Class<?> fieldType;
 
 	public String toString() {
 		return field.getName() + "/" + columnName + "/mutable=" + isMutable;

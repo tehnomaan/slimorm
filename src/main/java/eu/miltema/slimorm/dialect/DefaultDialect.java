@@ -7,14 +7,13 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
-import javax.persistence.Column;
-import javax.persistence.Table;
+import javax.persistence.*;
+
+import org.postgresql.util.PGobject;
+
+import com.google.gson.Gson;
 
 import eu.miltema.slimorm.*;
 
@@ -152,5 +151,26 @@ public class DefaultDialect implements Dialect {
 		if (props == null)
 			entityProps.put(entityClass, props = new EntityProperties(entityClass, this));
 		return props;
+	}
+
+	@Override
+	public LoadBinder getJSonLoadBinder(Class<?> fieldClass) {
+		return (rs, i) -> {
+			String json = rs.getString(i);
+			return (json == null ? null : new Gson().fromJson(json, fieldClass));
+		};
+	}
+
+	@Override
+	public SaveBinder getJSonSaveBinder(Class<?> fieldClass) {
+		return (stmt, i, param) -> {
+			if (param != null) {
+				PGobject jobj = new PGobject();
+				jobj.setType("json");
+				jobj.setValue(new Gson().toJson(param));
+				stmt.setObject(i, jobj);
+			}
+			else stmt.setObject(i, null);
+		};
 	}
 }

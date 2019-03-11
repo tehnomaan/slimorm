@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.*;
 
 import javax.persistence.*;
 
+import eu.miltema.slimorm.annot.JSon;
 import eu.miltema.slimorm.dialect.Dialect;
 
 /**
@@ -41,15 +42,20 @@ public class EntityProperties {
 
 				FieldProperties props = new FieldProperties();
 				props.field = field;
+				props.fieldType = field.getType();
 				props.columnName = dialect.getColumnName(field);
 				if (field.getAnnotation(Id.class) != null) {
 					idField = props;
 					props.isMutable = false;
 				}
-				props.saveBinder = dialect.getSaveBinder(field.getType());
+				if (field.isAnnotationPresent(JSon.class))
+					props.saveBinder = dialect.getJSonSaveBinder(props.fieldType);
+				else props.saveBinder = dialect.getSaveBinder(field.getType());
 				if (props.saveBinder == null)
 					throw new RuntimeException("Unsupported field type for field " + field.getName());
-				props.loadBinder = dialect.getLoadBinder(field.getType());
+				if (field.isAnnotationPresent(JSon.class))
+					props.loadBinder = dialect.getJSonLoadBinder(props.fieldType);
+				else props.loadBinder = dialect.getLoadBinder(field.getType());
 				fields.add(props);
 				if (props.isMutable)
 					mutableFields.add(props);

@@ -118,4 +118,16 @@ public class TestTypes  extends AbstractDatabaseTest {
 		Entity2 e = db.insert(new Entity2(x -> x.fLocalDateTime = ldt));
 		assertEquals(ldt, db.getById(Entity2.class, e.id).fLocalDateTime);
 	}
+
+	@Test
+	public void testJSon() throws Exception {
+		TestStruct s = new TestStruct();
+		s.attr1 = "abc";
+		s.attr2 = 4.76;
+		s.attr3 = true;
+		Entity2 e = db.insert(new Entity2(x -> x.fJson2 = new String[] {"abc", "def"}, x -> x.fJson1 = s));
+		e = db.getById(Entity2.class, e.id);
+		assertEquals(4.76, e.fJson1.attr2, .0001);
+		assertEquals("def", e.fJson2[1]);
+	}
 }

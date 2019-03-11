@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 
 import javax.persistence.*;
 
+import eu.miltema.slimorm.annot.JSon;
+
 @Table(name = "slim_test_types")
 public class Entity2 {
 
@@ -33,11 +35,15 @@ public class Entity2 {
 	public ZonedDateTime fZonedDateTime;
 	public LocalDate fLocalDate;
 	public LocalDateTime fLocalDateTime;
+	@JSon public TestStruct fJson1;
+	@JSon public String[] fJson2;
 
 	public Entity2() {
 	}
 
-	public Entity2(Consumer<Entity2> initializer) {
-		initializer.accept(this);
+	@SafeVarargs
+	public Entity2(Consumer<Entity2> ... initializers) {
+		for(Consumer<Entity2> initializer : initializers)
+			initializer.accept(this);
 	}
 }

@@ -34,6 +34,8 @@ CREATE TABLE public.slim_test_types
   f_zoned_date_time timestamp with time zone,
   f_local_date date,
   f_local_date_time timestamp without time zone,
+  f_json1 json,
+  f_json2 json,
   CONSTRAINT slim_test_types_pkey PRIMARY KEY (id)
 );
 ALTER TABLE public.slim_test_types

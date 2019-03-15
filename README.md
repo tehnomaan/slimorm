@@ -3,7 +3,7 @@ SlimORM is a lightweight Java ORM library, based on JDBC.
 
 Why yet another ORM library, when we have popular ORM libraries already?
 Because sometimes, You just don't want the complexity of those popular libraries.
-Instead, You need basic CRUD operations, which would be simple to set up, simple to use and have minimal dependencies.
+Instead, You need basic CRUD operations, which would be simple to set up, simple to use and have minimal [dependencies](#dependencies).
 For large and complex enterprise projects, SlimORM probably lacks features and flexibility.
 
 # Basic Usage
@@ -47,6 +47,39 @@ Get a list of records with SQL filter:
 ```java
 Collection<Employee> employees = db.where("name LIKE ?", "A%").list(Employee.class);
 ```
+
+# Dependencies
+
+Add SlimORM dependency into build.gradle:
+
+```gradle
+dependencies {
+    implementation 'eu.miltema:slimorm:1.0.0'
+}
+```
+
+or alternatively, if using Maven, then into pom.xml:
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>eu.miltema</groupId>
+    <artifactId>slimorm</artifactId>
+    <version>1.0.0</version>
+  </dependency>
+</dependencies>
+```
+
+In addition, build.gradle or pom.xml must refer to database driver. For example, when using PostgreSQL, build.gradle contains:
+
+```gradle
+dependencies {
+    implementation 'eu.miltema:slimorm:1.0.0'
+    runtime 'org.postgresql:postgresql:42.2.5'
+}
+```
+
+SlimORM itself depends on 2 libraries: javax.persistence and com.google.code.gson:gson. These are resolved by build system automatically.
 
 # Annotations
 

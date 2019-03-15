@@ -1,74 +1,56 @@
-apply plugin: 'java-library'
-apply plugin: 'maven'
-apply plugin: 'signing'
-
+/*
+ * gradle clean install
+ * gradle upload
+ * gradle closeAndReleaseRepository
+ */
+buildscript {
+	repositories {
+	    mavenCentral()
+	}
+	dependencies {
+        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+    }
+}
+plugins {
+    id 'io.codearte.nexus-staging' version '0.20.0'
+}
 repositories {
-    jcenter()
+    mavenCentral()
 }
+apply plugin: 'java-library'
+apply plugin: 'com.bmuschko.nexus'
 
-dependencies {
-    testImplementation 'junit:junit:4.12'
-    testCompile 'org.postgresql:postgresql:42.2.5'
-    compile 'javax.persistence:persistence-api:1.0.2'
-    compile 'com.google.code.gson:gson:2.8.5'
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives javadocJar, sourcesJar
-}
-
-signing {
-    useGpgCmd()
-    sign configurations.archives
-}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 group = "eu.miltema"
 archivesBaseName = "slimorm"
-version = "0.0.10"
+version = "0.0.30"
 
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+dependencies {
+    api 'javax.persistence:persistence-api:1.0.2'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.postgresql:postgresql:42.2.5'
+}
 
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
-
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
-
-      pom.project {
+modifyPom {
+    project {
         name 'SlimORM'
-        packaging 'jar'
-        artifactId 'slimorm'
-        description 'Lightweight Java ORM library'
+        description 'A lightweight Java ORM library'
         url 'https://github.com/tehnomaan/slimorm'
-
         scm {
           connection 'scm:git:git://github.com/tehnomaan/slimorm.git'
           developerConnection 'scm:git:git://github.com/tehnomaan/slimorm.git'
           url 'https://github.com/tehnomaan/slimorm'
         }
-
         licenses {
           license {
             name 'GNU General Public License, Version 3'
             url 'https://www.gnu.org/licenses/gpl-3.0.html'
+            distribution 'repo'
           }
         }
-
         developers {
           developer {
             id 'margus'
@@ -76,7 +58,17 @@ uploadArchives {
             email 'margus.selge@gmail.com'
           }
         }
-      }
     }
-  }
+}
+extraArchive {
+    sources = true
+    tests = true
+    javadoc = true
+}
+nexus {
+    sign = true
+    repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+    snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+}
+nexusStaging {
 }

@@ -134,20 +134,23 @@ For data types not listed above, one must superclass DefaultDialect and provide 
 * File gradle.properties should look like this:
 
 ```
-signing.gnupg.executable=gpg
-signing.gnupg.useLegacyGpg=true
-signing.gnupg.keyName=ECCAD9C3
-signing.gnupg.passphrase=xyz
-
-ossrhUsername=your-jira-id
-ossrhPassword=your-jira-password
+nexusUsername=ossrh-username
+nexusPassword=ossrh-password
+signing.keyId=ECCAD9C3
+signing.password=gpg-password
+signing.secretKeyRingFile=/path/to/secring.gpg
 ```
 
-* Start building
+* Uploading steps
 
 ```
-gradle build
+gradle clean install
+gradle upload
+gradle closeAndReleaseRepository
 ```
+
+Alternatively, if the last command fails, closing and releasing can be done manually via [Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories).
+
 
 # History
 

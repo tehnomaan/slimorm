@@ -20,6 +20,7 @@ public class DefaultDialect implements Dialect {
 	Map<Class<?>, EntityProperties> entityProps = new HashMap<>();
 	HashMap<Class<?>, SaveBinder> saveBinders = new HashMap<>();
 	HashMap<Class<?>, LoadBinder> loadBinders = new HashMap<>();
+	private String schema = "public";
 
 	public DefaultDialect() {
 		saveBinders.put(Byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
@@ -168,7 +169,7 @@ public class DefaultDialect implements Dialect {
 //					PGobject jobj = new PGobject();
 //					jobj.setType("json");
 //					jobj.setValue(new Gson().toJson(param));
-					// Implement the above logic without the need of dependencies
+					// Implement the above logic without the need of postgre dependencies
 					Class<?> clazz = Class.forName("org.postgresql.util.PGobject");
 					jobj = clazz.newInstance();
 					clazz.getMethod("setType", String.class).invoke(jobj, "json");
@@ -181,5 +182,16 @@ public class DefaultDialect implements Dialect {
 			}
 			else stmt.setObject(i, null);
 		};
+	}
+
+	@Override
+	public String getSchema() {
+		return schema;
+	}
+
+	@Override
+	public Dialect setSchema(String schema) {
+		this.schema = schema;
+		return this;
 	}
 }

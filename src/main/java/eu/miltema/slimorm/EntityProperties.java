@@ -18,11 +18,11 @@ import eu.miltema.slimorm.dialect.Dialect;
  */
 public class EntityProperties {
 
-	private String tableName;
-	Collection<FieldProperties> fields = new ArrayList<>();//transient fields excluded
-	Collection<FieldProperties> mutableFields = new ArrayList<>();//transient fields excluded
-	Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
-	FieldProperties idField;
+	public String tableName;
+	public Collection<FieldProperties> fields = new ArrayList<>();//transient & synthetic fields excluded
+	Collection<FieldProperties> mutableFields = new ArrayList<>();//transient & synthetic fields excluded
+	public Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
+	public FieldProperties idField;
 	String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
@@ -37,6 +37,8 @@ public class EntityProperties {
 				if ((field.getModifiers() & Modifier.TRANSIENT) != 0)
 					continue;
 				if (field.getAnnotation(Transient.class) != null)
+					continue;
+				if (field.isSynthetic())
 					continue;
 				field.setAccessible(true);
 

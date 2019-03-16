@@ -22,6 +22,7 @@ public class Database {
 	Dialect dialect;
 	private DatabaseConnectionFactory connFactory;
 	private Connection txConnection;//connection for current transaction; when not in transaction context, this field is null
+	private String schema = "public";
 
 	/**
 	 * Create database object via datasource
@@ -294,5 +295,14 @@ public class Database {
 		dialect = mapDialects.get(clazz);
 		if (dialect == null)
 			mapDialects.put(clazz, dialect = getDialect());
+	}
+
+	public String getSchema() {
+		return schema;
+	}
+
+	public Database setSchema(String schema) {
+		this.schema = schema;
+		return this;
 	}
 }

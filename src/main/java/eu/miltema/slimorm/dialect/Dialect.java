@@ -56,6 +56,4 @@ public interface Dialect {
 
 	LoadBinder getJSonLoadBinder(Class<?> fieldClass);
 	SaveBinder getJSonSaveBinder(Class<?> fieldClass);
-	String getSchema();
-	Dialect setSchema(String schema);
 }

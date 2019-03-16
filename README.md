@@ -14,7 +14,7 @@ Establish database link:
 Database db = new Database("org.postgresql.Driver", "jdbc:postgresql://localhost:5432/demoDB", "demouser", "password");
 ```
 
-Insert a new record:
+Insert a new [Employee-record](#annotations):
 
 ```java
 Employee employee = new Employee();
@@ -86,8 +86,9 @@ SlimORM itself depends on 2 libraries: javax.persistence and com.google.code.gso
 SlimORM supports these javax.persistence annotations when declaring entities:
 * **@Table** - without this annotation, SlimORM uses snake-case class name as table name. For example, class EmployeeDetails would be stored into table employee\_details
 * **@Column** - without this annotation, SlimORM uses snake-case field name as column name. For example, field dateOfBirth would be stored into column date\_of\_birth
-* **@Transient** - Annotation @Transient and Java modifier transient have the same effect: SlimORM will not read/write this field to the database
-* **@Id**
+* **@Transient** - annotation @Transient and Java modifier transient have the same effect: SlimORM will not read/write this field to the database
+* **@Id** - declares a primary key field
+* **@JSon** - declares that this field will be stored as a JSon object. This is not a javax.persistence annotation, but SlimORM annotation
 
 For example:
 
@@ -105,7 +106,9 @@ public class Employee {
 	@Transient
 	boolean isDirty;
 
-	transient boolean isUpToDate;
+	transient boolean isDirty2;
+
+	@JSon Contract[] contracts;
 }
 ```
 
@@ -116,9 +119,11 @@ When all statements succeed, SlimORM automatically commits the transaction. When
 
 ```java
 Employee[] entities = db.transaction((db, connection) -> {
+
 	Employee e1 = new Employee();
 	e1.name = "John Smith";
 	db.insert(e1);
+
 	Employee e2 = new Employee();
 	e2.name = "Jane Doe";
 	db.insert(e2);
@@ -159,31 +164,6 @@ String, byte, Byte, short, Short, int, Integer, long, Long, float, Float, double
 Be aware that PostgreSQL does not store timezone id into record (even when data type is _with time zone_). Therefore, all time-related columns store correct instant in time, but have lost the original timezone id.
 
 For data types not listed above, one must superclass DefaultDialect and provide custom saveBinder and loadBinder. 
-
-# Deploying to Maven Central
-* Install GnuPG from https://www.gnupg.org/download/ .
-* In environment, set GRADLE\_USER\_HOME=C:/directory-for-gradle.properties
-
-* File gradle.properties should look like this:
-
-```
-nexusUsername=ossrh-username
-nexusPassword=ossrh-password
-signing.keyId=ECCAD9C3
-signing.password=gpg-password
-signing.secretKeyRingFile=/path/to/secring.gpg
-```
-
-* Uploading steps
-
-```
-gradle clean install
-gradle upload
-gradle closeAndReleaseRepository
-```
-
-Alternatively, if the last command fails, closing and releasing can be done manually via [Nexus Repository Manager](https://oss.sonatype.org/#stagingRepositories).
-
 
 # History
 

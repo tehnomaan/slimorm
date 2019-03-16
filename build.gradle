@@ -5,19 +5,20 @@
  */
 buildscript {
 	repositories {
-	    mavenCentral()
+		mavenCentral()
 	}
 	dependencies {
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
-    }
+		classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+	}
 }
 plugins {
-    id 'io.codearte.nexus-staging' version '0.20.0'
+	id 'io.codearte.nexus-staging' version '0.20.0'
 }
 repositories {
-    mavenCentral()
+	mavenCentral()
 }
 apply plugin: 'java-library'
+apply plugin: 'eclipse'
 apply plugin: 'com.bmuschko.nexus'
 
 sourceCompatibility = 1.8
@@ -27,48 +28,60 @@ group = "eu.miltema"
 archivesBaseName = "slimorm"
 version = "1.0.0"
 
+eclipse {
+	classpath {
+		defaultOutputDir = file('build/default')
+		file.whenMerged {
+			entries.each { source ->
+				if (source.kind == 'src' && !source.path.startsWith('/')) { // only Source-folders in the project starting with '/' are project-references
+					source.output = null // use default Output for all source-folders; without this, eclipse nested path errors would occur
+				}
+			}
+		}
+	}
+}
 dependencies {
-    api 'javax.persistence:persistence-api:1.0.2'
-    implementation 'com.google.code.gson:gson:2.8.5'
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.postgresql:postgresql:42.2.5'
+	api 'javax.persistence:persistence-api:1.0.2'
+	implementation 'com.google.code.gson:gson:2.8.5'
+	testImplementation 'junit:junit:4.12'
+	testImplementation 'org.postgresql:postgresql:42.2.5'
 }
 
 modifyPom {
-    project {
-        name 'SlimORM'
-        description 'A lightweight Java ORM library'
-        url 'https://github.com/tehnomaan/slimorm'
-        scm {
-          connection 'scm:git:git://github.com/tehnomaan/slimorm.git'
-          developerConnection 'scm:git:git://github.com/tehnomaan/slimorm.git'
-          url 'https://github.com/tehnomaan/slimorm'
-        }
-        licenses {
-          license {
-            name 'GNU General Public License, Version 3'
-            url 'https://www.gnu.org/licenses/gpl-3.0.html'
-            distribution 'repo'
-          }
-        }
-        developers {
-          developer {
-            id 'margus'
-            name 'Margus Selge'
-            email 'margus.selge@gmail.com'
-          }
-        }
-    }
+	project {
+	name 'SlimORM'
+		description 'A lightweight Java ORM library'
+		url 'https://github.com/tehnomaan/slimorm'
+		scm {
+			connection 'scm:git:git://github.com/tehnomaan/slimorm.git'
+			developerConnection 'scm:git:git://github.com/tehnomaan/slimorm.git'
+			url 'https://github.com/tehnomaan/slimorm'
+		}
+		licenses {
+			license {
+				name 'GNU General Public License, Version 3'
+				url 'https://www.gnu.org/licenses/gpl-3.0.html'
+				distribution 'repo'
+			}
+		}
+		developers {
+			developer {
+				id 'margus'
+				name 'Margus Selge'
+				email 'margus.selge@gmail.com'
+			}
+		}
+	}
 }
 extraArchive {
-    sources = true
-    tests = true
-    javadoc = true
+	sources = true
+	tests = true
+	javadoc = true
 }
 nexus {
-    sign = true
-    repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-    snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+	sign = true
+	repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+	snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
 }
 nexusStaging {
 }

@@ -5,6 +5,7 @@ import javax.persistence.*;
 public class SlimTestEntity {
 
 	@Id
+	@GeneratedValue
 	public Integer id;
 
 	public String name;

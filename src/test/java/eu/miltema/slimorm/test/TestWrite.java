@@ -39,6 +39,14 @@ public class TestWrite extends AbstractDatabaseTest {
 	}
 
 	@Test
+	public void testIdWithoutAnnotations() throws Exception {
+		SlimTestEntityDefaultId e = new SlimTestEntityDefaultId();
+		e.name = "Mike";
+		e = db.getById(SlimTestEntityDefaultId.class, db.insert(e).id);
+		assertEquals("Mike", e.name);
+	}
+
+	@Test
 	public void testUpdate() throws Exception {
 		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
 		e.name = "Peter";

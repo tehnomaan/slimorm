@@ -11,12 +11,13 @@ import java.lang.reflect.Field;
 public class FieldProperties {
 	public String columnName;
 	public Field field;
-	public boolean isMutable = true;
+	public boolean updatable = true;
+	public boolean insertable = true;
 	public SaveBinder saveBinder;
 	public LoadBinder loadBinder;
 	public Class<?> fieldType;
 
 	public String toString() {
-		return field.getName() + "/" + columnName + "/mutable=" + isMutable;
+		return field.getName() + "/" + columnName;
 	}
 }

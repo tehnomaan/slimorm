@@ -13,6 +13,7 @@ import eu.miltema.slimorm.annot.JSon;
 public class Entity2 {
 
 	@Id
+	@GeneratedValue
 	public int id;
 
 	public String fString;

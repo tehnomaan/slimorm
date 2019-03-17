@@ -84,10 +84,11 @@ SlimORM itself depends on 2 libraries: javax.persistence and com.google.code.gso
 # Annotations
 
 SlimORM supports these javax.persistence annotations when declaring entities:
-* **@Table** - without this annotation, SlimORM uses snake-case class name as table name. For example, class EmployeeDetails would be stored into table employee\_details
-* **@Column** - without this annotation, SlimORM uses snake-case field name as column name. For example, field dateOfBirth would be stored into column date\_of\_birth
+* **@Table (name)** - without this annotation, SlimORM uses snake-case class name as table name. For example, class EmployeeDetails would be stored into table employee\_details
+* **@Column (name, updatable, insertable)** - without this annotation, SlimORM uses snake-case field name as column name. For example, field dateOfBirth would be stored into column date\_of\_birth
 * **@Transient** - annotation @Transient and Java modifier transient have the same effect: SlimORM will not read/write this field to the database
-* **@Id** - declares a primary key field
+* **@Id** - declares a primary key field. Only single-field primary keys are supported - composite primary keys are not
+* **@GeneratedValue** - database generates the value for this field. INSERT & UPDATE will not modify this field
 * **@JSon** - declares that this field will be stored as a JSon object. This is not a javax.persistence annotation, but SlimORM annotation
 
 For example:
@@ -96,6 +97,7 @@ For example:
 @Table(name="employees")
 public class Employee {
 	@Id
+	@GeneratedValue
 	int id;
 
 	String name;
@@ -111,6 +113,9 @@ public class Employee {
 	@JSon Contract[] contracts;
 }
 ```
+
+NB! Since most database designs have an auto-generated primary key with name _id_, then SlimORM has a special shorthand: a field with name _id_ and without @Id is still treated as if both annotations were present.
+If this is not what You need, declare Your primary key with a different name or add @Id annotation to a different field.
 
 # Transactions
 

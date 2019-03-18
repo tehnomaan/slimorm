@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 import javax.persistence.*;
 
-import eu.miltema.slimorm.annot.JSon;
+import eu.miltema.slimorm.JSon;
 
 @Table(name = "slim_test_types")
 public class Entity2 {

@@ -6,7 +6,6 @@ import static java.util.stream.Collectors.*;
 
 import javax.persistence.*;
 
-import eu.miltema.slimorm.annot.JSon;
 import eu.miltema.slimorm.dialect.Dialect;
 
 /**

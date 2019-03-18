@@ -1,4 +1,4 @@
-package eu.miltema.slimorm.annot;
+package eu.miltema.slimorm;
 
 import java.lang.annotation.*;
 

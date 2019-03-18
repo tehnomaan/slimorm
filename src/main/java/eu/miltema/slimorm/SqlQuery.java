@@ -2,6 +2,7 @@ package eu.miltema.slimorm;
 
 import java.sql.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -18,10 +19,12 @@ public class SqlQuery {
 	String orderBy;
 	String groupBy;
 	Object[] parameters;
+	private Consumer<String> logger = message -> {};
 
-	SqlQuery(Database database, String sql) {
+	SqlQuery(Database database, String sql, Consumer<String> logger) {
 		this.database = database;
 		this.sql = sql;
+		this.logger = logger;
 	}
 
 	/**
@@ -44,7 +47,9 @@ public class SqlQuery {
 	 */
 	public <T> List<T> list(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
-			try(PreparedStatement stmt = conn.prepareStatement(getSqlStatement(entityClass))) {
+			String sql = getSqlStatement(entityClass);
+			logger.accept(sql);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				database.bindWhereParameters(stmt, 0, parameters);
 				try(ResultSet rs = stmt.executeQuery()) {
 					ArrayList<T> list = new ArrayList<>();
@@ -66,7 +71,9 @@ public class SqlQuery {
 	 */
 	public <T> T fetch(Class<? extends T> entityClass) throws Exception {
 		return database.runStatements((db, conn) -> {
-			try(PreparedStatement stmt = conn.prepareStatement(getSqlStatement(entityClass))) {
+			String sql = getSqlStatement(entityClass);
+			logger.accept(sql);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				database.bindWhereParameters(stmt, 0, parameters);
 				try(ResultSet rs = stmt.executeQuery()) {
 					if (!rs.next())

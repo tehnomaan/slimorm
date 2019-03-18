@@ -2,6 +2,7 @@ package eu.miltema.slimorm;
 
 import java.sql.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.naming.*;
@@ -23,6 +24,7 @@ public class Database {
 	private DatabaseConnectionFactory connFactory;
 	private Connection txConnection;//connection for current transaction; when not in transaction context, this field is null
 	private String schema = "public";
+	private Consumer<String> logger = message -> {};
 
 	/**
 	 * Create database object via datasource
@@ -79,7 +81,9 @@ public class Database {
 		EntityProperties props = dialect.getProperties(entity.getClass());
 		return runStatements((db, conn) -> {
 			boolean hasId = (props.idField != null);
-			try(PreparedStatement stmt = conn.prepareStatement(props.sqlInsert + props.sqlInsertValues, hasId  ? new String[] {props.idField.columnName} : null)) {
+			String sql = props.sqlInsert + props.sqlInsertValues;
+			logger.accept(sql);
+			try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
 				bindParameters(0, entity, props, stmt, props.insertableFields);
 				stmt.executeUpdate();
 				if (hasId) {
@@ -106,6 +110,7 @@ public class Database {
 		EntityProperties props = dialect.getProperties(array[0].getClass());
 		return runStatements((db, conn) -> {
 			String sql = props.sqlInsert + entities.stream().map(e -> props.sqlInsertValues).collect(Collectors.joining(", "));
+			logger.accept(sql);
 			boolean hasId = (props.idField != null);
 			try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
 				int ordinal = 0;
@@ -145,7 +150,9 @@ public class Database {
 	public void update(Object entity, String whereExpression, Object ... whereParameters) throws Exception {
 		runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entity.getClass());
-			try(PreparedStatement stmt = conn.prepareStatement(props.sqlUpdate + " WHERE " + whereExpression)) {
+			String sql = props.sqlUpdate + " WHERE " + whereExpression;
+			logger.accept(sql);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				int ordinal = bindParameters(0, entity, props, stmt, props.updatableFields);
 				bindWhereParameters(stmt, ordinal, whereParameters);
 				stmt.executeUpdate();
@@ -179,7 +186,9 @@ public class Database {
 	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
 		return runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entityClass);
-			try(PreparedStatement stmt = conn.prepareStatement(props.sqlDelete + " WHERE " + whereExpression)) {
+			String sql = props.sqlDelete + " WHERE " + whereExpression;
+			logger.accept(sql);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				bindWhereParameters(stmt, 0, whereParameters);
 				return stmt.executeUpdate();
 			}
@@ -194,7 +203,7 @@ public class Database {
 	 * @throws Exception when anything goes wrong
 	 */
 	public SqlQuery sql(String sqlSelect, Object ... whereParameters) throws Exception {
-		SqlQuery q = new SqlQuery(this, sqlSelect);
+		SqlQuery q = new SqlQuery(this, sqlSelect, logger);
 		q.parameters = whereParameters;
 		return q;
 	}
@@ -207,7 +216,7 @@ public class Database {
 	 * @throws Exception when anything goes wrong
 	 */
 	public SqlQuery where(String whereExpression, Object ... whereParameters) throws Exception {
-		SqlQuery q = new SqlQuery(this, null);
+		SqlQuery q = new SqlQuery(this, null, logger);
 		q.whereExpression = whereExpression;
 		q.parameters = whereParameters;
 		return q;
@@ -221,7 +230,7 @@ public class Database {
 	 * @throws Exception when anything goes wrong
 	 */
 	public <T> List<T> listAll(Class<? extends T> entityClass) throws Exception {
-		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect).list(entityClass);
+		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger).list(entityClass);
 	}
 
 	/**
@@ -278,7 +287,7 @@ public class Database {
 
 	synchronized <T> T runStatements(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
-			return statements.statements(this, txConnection);//in transaction context, connection management takes place in method transaction
+			return statements.statements(this, txConnection);//in transaction context, connection management takes place in method "transaction"
 
 		// When not in transaction context, connection management takes place in this method
 		try(Connection connection = connFactory.getConnection()) {
@@ -303,6 +312,11 @@ public class Database {
 
 	public Database setSchema(String schema) {
 		this.schema = schema;
+		return this;
+	}
+
+	public Database setLogger(Consumer<String> logger) {
+		this.logger = logger;
 		return this;
 	}
 }

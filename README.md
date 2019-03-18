@@ -170,6 +170,14 @@ Be aware that PostgreSQL does not store timezone id into record (even when data 
 
 For data types not listed above, one must superclass DefaultDialect and provide custom saveBinder and loadBinder. 
 
+# Logging
+
+To keep the amount of dependencies low, SlimORM is not logging automatically. To add logging to SlimORM (System.out, log4j, slf etc), do this:
+
+```java
+Database db = new Database(...).setLogger(message -> System.out.println(message));
+```
+
 # History
 
 I first started with a custom ORM library probably around 2003, mostly for PostgreSQL.

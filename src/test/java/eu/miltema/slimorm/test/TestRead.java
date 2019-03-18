@@ -16,8 +16,18 @@ public class TestRead extends AbstractDatabaseTest {
 		initDatabase();
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testEntityWithIdOnly() throws Exception {
+		db.getDialect().getProperties(EntityWithIdOnly.class);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEntityWithoutFields() throws Exception {
+		db.getDialect().getProperties(EntityWithoutFields.class);
+	}
+
 	@Test
-	public void getById() throws Exception {
+	public void testGetById() throws Exception {
 		SlimTestEntity e = new SlimTestEntity();
 		e.name = "John";
 		db.insert(e);

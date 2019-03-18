@@ -83,6 +83,10 @@ public class EntityProperties {
 			if (fprop.updatable)
 				updatableFields.add(fprop);
 		}
+		if (idField != null && fields.size() == 1)
+			throw new IllegalArgumentException("No other persistable fields found except @Id field");
+		else if (idField == null && fields.size() == 0)
+			throw new IllegalArgumentException("No persistable fields found");
 	}
 
 	public void initSqlStatements(Class<?> clazz, Dialect dialect) {

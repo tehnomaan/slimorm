@@ -8,6 +8,9 @@ import java.util.stream.*;
 
 import org.junit.*;
 
+import eu.miltema.slimorm.RecordNotFoundException;
+import eu.miltema.slimorm.TransactionException;
+
 /**
  * Tests INSERT/UPDATE/DELETE functionality. Prerequisite is that database slimtest exists and user slimuser has access to it (password slim1234)
  *
@@ -15,10 +18,6 @@ import org.junit.*;
  *
  */
 public class TestWrite extends AbstractDatabaseTest {
-
-	private class TestWriteException extends Exception {
-		
-	}
 
 	@BeforeClass
 	public static void setupClass() throws Exception {
@@ -61,6 +60,15 @@ public class TestWrite extends AbstractDatabaseTest {
 		assertNull(e.count);
 	}
 
+	@Test(expected = RecordNotFoundException.class)
+	public void testUpdateNonExistingEntity() throws Exception {
+		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
+		e.id = 999999999;
+		e.name = "Peter";
+		e.count = 4;
+		db.update(e);
+	}
+
 	@Test
 	public void testBulk() throws Exception {
 		List<SlimTestEntity> entities = db.bulkInsert(Stream.of(new SlimTestEntity("Mary", 3), new SlimTestEntity("Ann", null)).collect(toList()));
@@ -83,11 +91,21 @@ public class TestWrite extends AbstractDatabaseTest {
 		assertEquals(10000, list.stream().map(e -> e.id).collect(toSet()).size());
 	}
 
-	@Test
+	@Test(expected = RecordNotFoundException.class)
 	public void testDelete() throws Exception {
 		Integer id = db.insert(new SlimTestEntity("John", null)).id;
-		db.delete(SlimTestEntity.class, id);
-		assertNull(db.getById(SlimTestEntity.class, id));
+		try {
+			db.delete(SlimTestEntity.class, id);
+		}
+		catch(Exception x) {
+			throw new Exception("Deletion should have been successful");
+		}
+		db.getById(SlimTestEntity.class, id);// expecting RecordNotFoundException
+	}
+
+	@Test(expected = RecordNotFoundException.class)
+	public void testDeleteNonExistingEntity() throws Exception {
+		db.delete(SlimTestEntity.class, 999999999);
 	}
 
 	@Test
@@ -110,7 +128,7 @@ public class TestWrite extends AbstractDatabaseTest {
 		assertEquals(4, e.count.intValue());
 	}
 	
-	@Test(expected = TestWriteException.class)
+	@Test(expected = TransactionException.class)
 	public void testFailedTransaction() throws Exception {
 		deleteAll();
 		try {
@@ -119,10 +137,10 @@ public class TestWrite extends AbstractDatabaseTest {
 				e.name = "Peter";
 				e.count = null;
 				db.update(e);
-				throw new TestWriteException();
+				throw new RuntimeException();
 			});
 		}
-		catch(TestWriteException x) {
+		catch(Exception x) {
 			assertEquals(0, db.listAll(SlimTestEntity.class).size());
 			throw x;
 		}

@@ -32,9 +32,10 @@ public class SqlQuery {
 	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entities stream
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> Stream<? extends T> stream(Class<? extends T> entityClass) throws Exception {
+	public <T> Stream<? extends T> stream(Class<? extends T> entityClass) throws SQLException, BindException {
 		return list(entityClass).stream();
 	}
 
@@ -43,9 +44,10 @@ public class SqlQuery {
 	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entities list
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> List<T> list(Class<? extends T> entityClass) throws Exception {
+	public <T> List<T> list(Class<? extends T> entityClass) throws SQLException, BindException {
 		return database.runStatements((db, conn) -> {
 			String sql = getSqlStatement(entityClass);
 			logger.accept(sql);
@@ -67,9 +69,10 @@ public class SqlQuery {
 	 * @param <T> entity type
 	 * @param entityClass target entity class
 	 * @return entity; if no records where found, null is returned
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> T fetch(Class<? extends T> entityClass) throws Exception {
+	public <T> T fetch(Class<? extends T> entityClass) throws SQLException, BindException {
 		return database.runStatements((db, conn) -> {
 			String sql = getSqlStatement(entityClass);
 			logger.accept(sql);
@@ -126,11 +129,21 @@ public class SqlQuery {
 		return fields;
 	}
 
-	private <T> T buildEntity(Class<? extends T> entityClass, ResultSet rs, FieldProperties[] fields) throws Exception {
-		T entity = (T) entityClass.newInstance();
+	private <T> T buildEntity(Class<? extends T> entityClass, ResultSet rs, FieldProperties[] fields) throws BindException {
+		T entity = null;
+		try {
+			entity = (T) entityClass.newInstance();
+		}
+		catch(InstantiationException | IllegalAccessException e) {
+			throw new BindException("Unable to invoke " + entityClass.getSimpleName() + "()", e);
+		}
 		for(int i = 0; i < fields.length; i++)
 			if (fields[i] != null)
-				fields[i].field.set(entity, fields[i].loadBinder.convert(rs, i + 1));
+				try {
+					fields[i].field.set(entity, fields[i].loadBinder.convert(rs, i + 1));
+				} catch (Exception e) {
+					throw new BindException("Unable to bind result from " + fields[i].columnName + " to entity field " + fields[i].field.getName(), e);
+				}
 		return entity;
 	}
 }

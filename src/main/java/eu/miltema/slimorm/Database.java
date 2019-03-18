@@ -75,9 +75,10 @@ public class Database {
 	 * @param <T> entity type
 	 * @param entity entity to insert
 	 * @return the same entity, with @Id field (if any) being initialized
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> T insert(T entity) throws Exception {
+	public <T> T insert(T entity) throws BindException, SQLException {
 		EntityProperties props = dialect.getProperties(entity.getClass());
 		return runStatements((db, conn) -> {
 			boolean hasId = (props.idField != null);
@@ -101,9 +102,10 @@ public class Database {
 	 * @param <T> entity type
 	 * @param entities collection of entities to insert (currently there is a limit on records count that depends on the SQL driver)
 	 * @return the same entities, with @Id field (if any) being initialized
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> List<T> bulkInsert(List<T> entities) throws Exception {
+	public <T> List<T> bulkInsert(List<T> entities) throws BindException, SQLException {
 		if (entities.isEmpty())
 			return entities;
 		Object[] array = entities.stream().toArray();
@@ -131,48 +133,41 @@ public class Database {
 	/**
 	 * Update an existing entity in database. Only entities with @Id field can be updated. When @Id field is missing, use method update(entity, whereExpression, whereParameters)
 	 * @param entity entity with new attribute values
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
+	 * @throws RecordNotFoundException when referenced entity was not found in database
 	 */
-	public void update(Object entity) throws Exception {
+	public void update(Object entity) throws BindException, SQLException, RecordNotFoundException {
 		EntityProperties props = dialect.getProperties(entity.getClass());
 		if (props.idField == null)
-			throw new Exception("Missing @Id field in " + entity.getClass().getSimpleName());
-		update(entity, props.sqlWhere, props.idField.field.get(entity));
-	}
-
-	/**
-	 * Update an existing entity in database. If WHERE expression selects multiple records, then all these records will be updated with new attribute values (except the @Id field).
-	 * @param entity entity with new attribute values
-	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
-	 * @param whereParameters parameters for WHERE expression
-	 * @throws Exception when anything goes wrong
-	 */
-	public void update(Object entity, String whereExpression, Object ... whereParameters) throws Exception {
-		runStatements((db, conn) -> {
-			EntityProperties props = dialect.getProperties(entity.getClass());
-			String sql = props.sqlUpdate + " WHERE " + whereExpression;
+			throw new BindException("Missing @Id field in " + entity.getClass().getSimpleName());
+		int count = runStatements((db, conn) -> {
+			String sql = props.sqlUpdate + " WHERE " + props.sqlWhere;
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				int ordinal = bindParameters(0, entity, props, stmt, props.updatableFields);
-				bindWhereParameters(stmt, ordinal, whereParameters);
-				stmt.executeUpdate();
+				bindWhereParameters(stmt, ordinal, props.idField.field.get(entity));
+				return stmt.executeUpdate();
 			}
-			return entity;
 		});
+		if (count != 1)
+			throw new RecordNotFoundException();
 	}
 
 	/**
 	 * Delete an existing record
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @param id entity id
-	 * @return true, if the record existed before deletion; false, if the record did not exist
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
+	 * @throws RecordNotFoundException when referenced entity was not found in database
 	 */
-	public boolean delete(Class<?> entityClass, Object id) throws Exception {
+	public void delete(Class<?> entityClass, Object id) throws BindException, SQLException, RecordNotFoundException {
 		EntityProperties props = dialect.getProperties(entityClass);
 		if (props.idField == null)
-			throw new Exception("Missing @Id field in " + entityClass.getSimpleName());
-		return deleteWhere(entityClass, props.sqlWhere, id) > 0;
+			throw new BindException("Missing @Id field in " + entityClass.getSimpleName());
+		if (deleteWhere(entityClass, props.sqlWhere, id) != 1)
+			throw new RecordNotFoundException();
 	}
 
 	/**
@@ -181,9 +176,10 @@ public class Database {
 	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
 	 * @param whereParameters parameters for WHERE expression
 	 * @return number of records deleted
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws Exception {
+	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws BindException, SQLException {
 		return runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entityClass);
 			String sql = props.sqlDelete + " WHERE " + whereExpression;
@@ -200,9 +196,10 @@ public class Database {
 	 * @param sqlSelect SQL SELECT statement
 	 * @param whereParameters parameter values for WHERE expression
 	 * @return query object for fetching the results
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public SqlQuery sql(String sqlSelect, Object ... whereParameters) throws Exception {
+	public SqlQuery sql(String sqlSelect, Object ... whereParameters) throws BindException, SQLException {
 		SqlQuery q = new SqlQuery(this, sqlSelect, logger);
 		q.parameters = whereParameters;
 		return q;
@@ -213,9 +210,10 @@ public class Database {
 	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
 	 * @param whereParameters parameter values for WHERE expression
 	 * @return query object for fetching the results
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public SqlQuery where(String whereExpression, Object ... whereParameters) throws Exception {
+	public SqlQuery where(String whereExpression, Object ... whereParameters) throws BindException, SQLException {
 		SqlQuery q = new SqlQuery(this, null, logger);
 		q.whereExpression = whereExpression;
 		q.parameters = whereParameters;
@@ -227,9 +225,10 @@ public class Database {
 	 * @param <T> entity type
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @return list of entities
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
 	 */
-	public <T> List<T> listAll(Class<? extends T> entityClass) throws Exception {
+	public <T> List<T> listAll(Class<? extends T> entityClass) throws BindException, SQLException {
 		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger).list(entityClass);
 	}
 
@@ -239,10 +238,15 @@ public class Database {
 	 * @param entityClass entity class, which indirectly refers to a database table
 	 * @param id entity id
 	 * @return entity; returns null, if id refers to non-existing record
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
+	 * @throws RecordNotFoundException when referenced entity was not found in database
 	 */
-	public <T> T getById(Class<? extends T> entityClass, Object id) throws Exception {
-		return where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
+	public <T> T getById(Class<? extends T> entityClass, Object id) throws BindException, SQLException, RecordNotFoundException {
+		T entity = where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
+		if (entity == null)
+			throw new RecordNotFoundException();
+		else return entity;
 	}
 
 	/**
@@ -250,30 +254,48 @@ public class Database {
 	 * @param <T> entity type
 	 * @param statements statements to run
 	 * @return the return value from statements
-	 * @throws Exception when anything goes wrong
+	 * @throws SQLException when connection allocation, release, commit or rollback fails
+	 * @throws TransactionException when a exception is thrown inside transaction logic 
 	 */
-	synchronized public <T> T transaction(TransactionStatements<T> statements) throws Exception {
+	synchronized public <T> T transaction(TransactionStatements<T> statements) throws SQLException, TransactionException {
 		if (txConnection != null)
-			throw new RuntimeException("Nested transactions are not supported");
-		txConnection = connFactory.getConnection();
+			throw new TransactionException("Nested transactions are not supported");
+
+		try {
+			txConnection = connFactory.getConnection();
+		} catch (SQLException se) {
+			throw se;
+		} catch (Exception e) {
+			throw new TransactionException("Transaction failed", e);
+		}
+
 		try {
 			txConnection.setAutoCommit(false);
-			T returnValue = runStatements(statements);
+			T returnValue = runStatementsEx(statements);
 			txConnection.commit();
 			return returnValue;
 		}
-		catch(Exception x) {
+		catch(TransactionException x) {
 			txConnection.rollback();
 			throw x;
+		}
+		catch(Exception x) {
+			txConnection.rollback();
+			throw new TransactionException("Transaction failed", x);
 		}
 		finally {
 			txConnection = null;
 		}
 	}
 
-	private <T> int bindParameters(int ordinal, T entity, EntityProperties props, PreparedStatement stmt, Collection<FieldProperties> fields) throws SQLException, IllegalAccessException {
+	private <T> int bindParameters(int ordinal, T entity, EntityProperties props, PreparedStatement stmt, Collection<FieldProperties> fields) throws SQLException, BindException {
 		for(FieldProperties fprops : fields)
-			fprops.saveBinder.bind(stmt, ++ordinal, fprops.field.get(entity));
+			try {
+				fprops.saveBinder.bind(stmt, ++ordinal, fprops.field.get(entity));
+			}
+			catch(IllegalAccessException iae) {
+				throw new BindException("Unable to access field " + fprops.field.getName());
+			}
 		return ordinal;
 	}
 
@@ -285,7 +307,19 @@ public class Database {
 				else dialect.getSaveBinder(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
 	}
 
-	synchronized <T> T runStatements(TransactionStatements<T> statements) throws Exception {
+	synchronized <T> T runStatements(TransactionStatements<T> statements) throws SQLException, BindException {
+		try {
+			return runStatementsEx(statements);
+		}
+		catch(BindException | SQLException x) {
+			throw x;
+		}
+		catch(Exception x) {
+			throw new RuntimeException("Transaction failed", x);
+		}
+	}
+
+	synchronized private <T> T runStatementsEx(TransactionStatements<T> statements) throws Exception {
 		if (txConnection != null)
 			return statements.statements(this, txConnection);//in transaction context, connection management takes place in method "transaction"
 

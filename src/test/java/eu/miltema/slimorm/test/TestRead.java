@@ -28,21 +28,21 @@ public class TestRead extends AbstractDatabaseTest {
 
 	@Test
 	public void testGetById() throws Exception {
-		SlimTestEntity e = new SlimTestEntity();
+		Entity e = new Entity();
 		e.name = "John";
 		db.insert(e);
-		assertNotNull(db.getById(SlimTestEntity.class, e.id));
+		assertNotNull(db.getById(Entity.class, e.id));
 	}
 
 	@Test
 	public void testListAll() throws Exception {
 		deleteAll();
-		SlimTestEntity e1 = new SlimTestEntity();
+		Entity e1 = new Entity();
 		e1.name = "Mary";
-		SlimTestEntity e2 = new SlimTestEntity();
+		Entity e2 = new Entity();
 		e2.name = "Ann";
 		db.bulkInsert(Stream.of(e1, e2).collect(toList()));
-		List<SlimTestEntity> list = db.listAll(SlimTestEntity.class);
+		List<Entity> list = db.listAll(Entity.class);
 		assertEquals(2, list.size());
 	}
 
@@ -50,12 +50,12 @@ public class TestRead extends AbstractDatabaseTest {
 	public void testListWhere() throws Exception {
 		deleteAll();
 		db.bulkInsert(IntStream.rangeClosed(1, 10).mapToObj(i -> {
-			SlimTestEntity e = new SlimTestEntity();
+			Entity e = new Entity();
 			e.name = "Mary";
 			e.count = i;
 			return e;
 		}).collect(toList()));
-		List<SlimTestEntity> list = db.where("count>=? AND count<=?", 3, 7).list(SlimTestEntity.class);
+		List<Entity> list = db.where("count>=? AND count<=?", 3, 7).list(Entity.class);
 		assertEquals(5, list.size());
 	}
 }

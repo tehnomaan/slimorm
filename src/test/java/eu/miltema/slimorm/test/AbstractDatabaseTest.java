@@ -29,7 +29,7 @@ abstract class AbstractDatabaseTest {
 	protected void deleteAll() throws Exception {
 		db.transaction((db, connection) -> {
 			try(Statement stmt = connection.createStatement()) {
-				stmt.executeUpdate("TRUNCATE slim_test_entity");
+				stmt.executeUpdate("TRUNCATE entity");
 				return null;
 			}
 		});

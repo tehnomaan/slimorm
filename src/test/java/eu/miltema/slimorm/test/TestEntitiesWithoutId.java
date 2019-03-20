@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 
 import org.junit.*;
 
-public class TestEntityWithoutId extends AbstractDatabaseTest {
+public class TestEntitiesWithoutId extends AbstractDatabaseTest {
 
 	@BeforeClass
 	public static void setupClass() throws Exception {
@@ -18,11 +18,11 @@ public class TestEntityWithoutId extends AbstractDatabaseTest {
 	@Test
 	public void testInsert() throws Exception {
 		deleteAll();
-		SlimTestEntityWithoutId e = new SlimTestEntityWithoutId();
+		EntityWithoutId e = new EntityWithoutId();
 		e.firstName = "John";
 		e.count = 7;
 		db.insert(e);
-		List<SlimTestEntityWithoutId> list = db.listAll(SlimTestEntityWithoutId.class);
+		List<EntityWithoutId> list = db.listAll(EntityWithoutId.class);
 		assertEquals(1, list.size());
 		e = list.get(0);
 		assertEquals("John", e.firstName);
@@ -32,14 +32,14 @@ public class TestEntityWithoutId extends AbstractDatabaseTest {
 	@Test
 	public void testBulkInsert() throws Exception {
 		deleteAll();
-		db.bulkInsert(Stream.of(new SlimTestEntityWithoutId("Mary", 3), new SlimTestEntityWithoutId("Ann", null)).collect(toList()));
-		assertEquals(2, db.listAll(SlimTestEntityWithoutId.class).size());
+		db.bulkInsert(Stream.of(new EntityWithoutId("Mary", 3), new EntityWithoutId("Ann", null)).collect(toList()));
+		assertEquals(2, db.listAll(EntityWithoutId.class).size());
 	}
 
 	@Test
 	public void testWhere() throws Exception {
 		deleteAll();
-		db.bulkInsert(Stream.of(new SlimTestEntityWithoutId("Mary", 3), new SlimTestEntityWithoutId("Marco", 1), new SlimTestEntityWithoutId("Ann", 5)).collect(toList()));
-		assertEquals(2, db.where("name LIKE ?", "Ma%").list(SlimTestEntityWithoutId.class).size());
+		db.bulkInsert(Stream.of(new EntityWithoutId("Mary", 3), new EntityWithoutId("Marco", 1), new EntityWithoutId("Ann", 5)).collect(toList()));
+		assertEquals(2, db.where("name LIKE ?", "Ma%").list(EntityWithoutId.class).size());
 	}
 }

@@ -2,18 +2,18 @@ package eu.miltema.slimorm.test;
 
 import javax.persistence.*;
 
-@Table(name = "slim_test_entity")
-public class SlimTestEntityWithoutId {
+@Table(name = "entity")
+public class EntityWithoutId {
 
 	@Column(name = "name")
 	public String firstName;
 
 	public Integer count;
 
-	public SlimTestEntityWithoutId() {
+	public EntityWithoutId() {
 	}
 
-	public SlimTestEntityWithoutId(String firstName, Integer count) {
+	public EntityWithoutId(String firstName, Integer count) {
 		this.firstName = firstName;
 		this.count = count;
 	}

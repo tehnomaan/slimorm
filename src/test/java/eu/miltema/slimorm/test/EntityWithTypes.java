@@ -9,8 +9,7 @@ import javax.persistence.*;
 
 import eu.miltema.slimorm.JSon;
 
-@Table(name = "slim_test_types")
-public class Entity2 {
+public class EntityWithTypes {
 
 	@Id
 	@GeneratedValue
@@ -39,12 +38,12 @@ public class Entity2 {
 	@JSon public TestStruct fJson1;
 	@JSon public String[] fJson2;
 
-	public Entity2() {
+	public EntityWithTypes() {
 	}
 
 	@SafeVarargs
-	public Entity2(Consumer<Entity2> ... initializers) {
-		for(Consumer<Entity2> initializer : initializers)
+	public EntityWithTypes(Consumer<EntityWithTypes> ... initializers) {
+		for(Consumer<EntityWithTypes> initializer : initializers)
 			initializer.accept(this);
 	}
 }

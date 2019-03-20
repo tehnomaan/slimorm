@@ -2,7 +2,7 @@ package eu.miltema.slimorm.test;
 
 import javax.persistence.*;
 
-public class SlimTestEntity {
+public class Entity {
 
 	@Id
 	@GeneratedValue
@@ -12,10 +12,10 @@ public class SlimTestEntity {
 
 	public Integer count;
 
-	public SlimTestEntity() {
+	public Entity() {
 	}
 
-	public SlimTestEntity(String name, Integer count) {
+	public Entity(String name, Integer count) {
 		this.name = name;
 		this.count = count;
 	}

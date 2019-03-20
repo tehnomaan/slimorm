@@ -1,17 +1,17 @@
-DROP TABLE IF EXISTS public.slim_test_entity;
-CREATE TABLE public.slim_test_entity
+DROP TABLE IF EXISTS public.entity;
+CREATE TABLE public.entity
 (
   name character varying not null,
   id serial NOT NULL,
   count integer,
-  CONSTRAINT slim_test_entity_pkey PRIMARY KEY (id)
+  CONSTRAINT entity_pkey PRIMARY KEY (id)
 );
-ALTER TABLE public.slim_test_entity
+ALTER TABLE public.entity
   OWNER TO slimuser;
 
 
-DROP TABLE IF EXISTS public.slim_test_types;
-CREATE TABLE public.slim_test_types
+DROP TABLE IF EXISTS public.entity_with_types;
+CREATE TABLE public.entity_with_types
 (
   id serial NOT NULL,
   f_string character varying,
@@ -36,7 +36,7 @@ CREATE TABLE public.slim_test_types
   f_local_date_time timestamp without time zone,
   f_json1 json,
   f_json2 json,
-  CONSTRAINT slim_test_types_pkey PRIMARY KEY (id)
+  CONSTRAINT entity_with_types_pkey PRIMARY KEY (id)
 );
-ALTER TABLE public.slim_test_types
+ALTER TABLE public.entity_with_types
   OWNER TO slimuser;

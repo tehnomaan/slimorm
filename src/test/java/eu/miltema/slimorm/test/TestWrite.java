@@ -26,43 +26,43 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testInsertReturnsKey() throws Exception {
-		assertNotNull(db.insert(new SlimTestEntity("John", null)).id);
+		assertNotNull(db.insert(new Entity("John", null)).id);
 	}
 	
 	@Test
 	public void testInsertedFields() throws Exception {
-		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
-		e = db.getById(SlimTestEntity.class, e.id);
+		Entity e = db.insert(new Entity("John", null));
+		e = db.getById(Entity.class, e.id);
 		assertEquals("John", e.name);
 		assertNull(e.count);
 	}
 
 	@Test
 	public void testIdWithoutAnnotations() throws Exception {
-		SlimTestEntityDefaultId e = new SlimTestEntityDefaultId();
+		EntityDefaultId e = new EntityDefaultId();
 		e.name = "Mike";
-		e = db.getById(SlimTestEntityDefaultId.class, db.insert(e).id);
+		e = db.getById(EntityDefaultId.class, db.insert(e).id);
 		assertEquals("Mike", e.name);
 	}
 
 	@Test
 	public void testUpdate() throws Exception {
-		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
+		Entity e = db.insert(new Entity("John", null));
 		e.name = "Peter";
 		e.count = 4;
 		db.update(e);
-		e = db.getById(SlimTestEntity.class, e.id);
+		e = db.getById(Entity.class, e.id);
 		assertEquals("Peter", e.name);
 		assertEquals((Integer) 4, e.count);
 		e.count = null;
 		db.update(e);
-		e = db.getById(SlimTestEntity.class, e.id);
+		e = db.getById(Entity.class, e.id);
 		assertNull(e.count);
 	}
 
 	@Test(expected = RecordNotFoundException.class)
 	public void testUpdateNonExistingEntity() throws Exception {
-		SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
+		Entity e = db.insert(new Entity("John", null));
 		e.id = 999999999;
 		e.name = "Peter";
 		e.count = 4;
@@ -71,60 +71,60 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testBulk() throws Exception {
-		List<SlimTestEntity> entities = db.bulkInsert(Stream.of(new SlimTestEntity("Mary", 3), new SlimTestEntity("Ann", null)).collect(toList()));
+		List<Entity> entities = db.bulkInsert(Stream.of(new Entity("Mary", 3), new Entity("Ann", null)).collect(toList()));
 		assertEquals("Mary", entities.get(0).name);
 		assertEquals("Ann", entities.get(1).name);
 		assertNotNull(entities.get(0).id);
 		assertNotNull(entities.get(1).id);
-		SlimTestEntity e1 = db.getById(SlimTestEntity.class, entities.get(0).id);
+		Entity e1 = db.getById(Entity.class, entities.get(0).id);
 		assertEquals("Mary", e1.name);
 		assertEquals((Integer) 3, e1.count);
-		SlimTestEntity e2 = db.getById(SlimTestEntity.class, entities.get(1).id);
+		Entity e2 = db.getById(Entity.class, entities.get(1).id);
 		assertEquals("Ann", e2.name);
 		assertNull(e2.count);
 	}
 
 	@Test
 	public void testLargeBulkInsert() throws Exception {
-		List<SlimTestEntity> list = IntStream.rangeClosed(1, 10000).mapToObj(i -> new SlimTestEntity("nimi" + i, i)).collect(toList());
+		List<Entity> list = IntStream.rangeClosed(1, 10000).mapToObj(i -> new Entity("nimi" + i, i)).collect(toList());
 		list = db.bulkInsert(list);
 		assertEquals(10000, list.stream().map(e -> e.id).collect(toSet()).size());
 	}
 
 	@Test(expected = RecordNotFoundException.class)
 	public void testDelete() throws Exception {
-		Integer id = db.insert(new SlimTestEntity("John", null)).id;
+		Integer id = db.insert(new Entity("John", null)).id;
 		try {
-			db.delete(SlimTestEntity.class, id);
+			db.delete(Entity.class, id);
 		}
 		catch(Exception x) {
 			throw new Exception("Deletion should have been successful");
 		}
-		db.getById(SlimTestEntity.class, id);// expecting RecordNotFoundException
+		db.getById(Entity.class, id);// expecting RecordNotFoundException
 	}
 
 	@Test(expected = RecordNotFoundException.class)
 	public void testDeleteNonExistingEntity() throws Exception {
-		db.delete(SlimTestEntity.class, 999999999);
+		db.delete(Entity.class, 999999999);
 	}
 
 	@Test
 	public void testDeleteWhere() throws Exception {
 		deleteAll();
-		db.bulkInsert(IntStream.rangeClosed(1, 10).mapToObj(i -> new SlimTestEntity("Mary", i)).collect(toList()));
-		assertEquals(4, db.deleteWhere(SlimTestEntity.class, "count>=?", 7));
+		db.bulkInsert(IntStream.rangeClosed(1, 10).mapToObj(i -> new Entity("Mary", i)).collect(toList()));
+		assertEquals(4, db.deleteWhere(Entity.class, "count>=?", 7));
 	}
 
 	@Test
 	public void testSuccessfulTransaction() throws Exception {
 		Integer id = db.transaction((db, connection) -> {
-			SlimTestEntity e = db.insert(new SlimTestEntity("John", null));
+			Entity e = db.insert(new Entity("John", null));
 			e.name = "Peter";
 			e.count = 4;
 			db.update(e);
 			return e.id;
 		});
-		SlimTestEntity e = db.getById(SlimTestEntity.class, id);
+		Entity e = db.getById(Entity.class, id);
 		assertEquals(4, e.count.intValue());
 	}
 	
@@ -133,7 +133,7 @@ public class TestWrite extends AbstractDatabaseTest {
 		deleteAll();
 		try {
 			db.transaction((db, connection) -> {
-				SlimTestEntity e = db.insert(new SlimTestEntity("John", 2));
+				Entity e = db.insert(new Entity("John", 2));
 				e.name = "Peter";
 				e.count = null;
 				db.update(e);
@@ -141,7 +141,7 @@ public class TestWrite extends AbstractDatabaseTest {
 			});
 		}
 		catch(Exception x) {
-			assertEquals(0, db.listAll(SlimTestEntity.class).size());
+			assertEquals(0, db.listAll(Entity.class).size());
 			throw x;
 		}
 	}

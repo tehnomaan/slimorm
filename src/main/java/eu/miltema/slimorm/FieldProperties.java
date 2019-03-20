@@ -16,6 +16,7 @@ public class FieldProperties {
 	public SaveBinder saveBinder;
 	public LoadBinder loadBinder;
 	public Class<?> fieldType;
+	public FieldProperties foreignField;//only present when the field has @ManyToOne annotation
 
 	public String toString() {
 		return field.getName() + "/" + columnName;

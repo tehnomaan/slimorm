@@ -40,3 +40,12 @@ CREATE TABLE public.entity_with_types
 );
 ALTER TABLE public.entity_with_types
   OWNER TO slimuser;
+
+DROP TABLE IF EXISTS public.entity_fkey;
+CREATE TABLE public.entity_fkey
+(
+  id serial NOT NULL,
+  name character varying,
+  entity_id integer,
+  CONSTRAINT entity_fkey_pkey PRIMARY KEY (id)
+);

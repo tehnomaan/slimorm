@@ -17,7 +17,6 @@ import eu.miltema.slimorm.dialect.Dialect;
  */
 public class EntityProperties {
 
-	private Class<?> clazz;
 	private Dialect dialect;
 	public String tableName;
 	public Collection<FieldProperties> fields = new ArrayList<>();//transient & synthetic fields excluded
@@ -28,13 +27,12 @@ public class EntityProperties {
 	private String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
-		this.clazz = clazz;
 		this.dialect = dialect;
-		initFields();
+		initFields(clazz);
 		tableName = dialect.getTableName(clazz);
 	}
 
-	private void initFields() {
+	private void initFields(Class<?> clazz) {
 		while(clazz != Object.class) {
 			for(Field field : clazz.getDeclaredFields()) {
 				if ((field.getModifiers() & Modifier.TRANSIENT) != 0)
@@ -89,16 +87,32 @@ public class EntityProperties {
 	private EntityProperties initSqlStatements() {
 		for(FieldProperties props : fields) {
 			Field field = props.field;
-			if (field.isAnnotationPresent(JSon.class))
+			if (field.isAnnotationPresent(JSon.class)) {
 				props.saveBinder = dialect.getJSonSaveBinder(props.fieldType);
-	//		else if (field.isAnnotationPresent(ManyToOne.class))
-	//			props.saveBinder = getFkeySaveBinder(props, dialect);
-			else props.saveBinder = dialect.getSaveBinder(field.getType());
+				props.loadBinder = dialect.getJSonLoadBinder(props.fieldType);
+			}
+			else if (field.isAnnotationPresent(ManyToOne.class)) {
+				EntityProperties feProp = dialect.getProperties(props.fieldType);
+				Class<?> feClass = feProp.idField.field.getDeclaringClass();
+				props.foreignField = feProp.idField;
+				SaveBinder sb = dialect.getSaveBinder(props.foreignField.fieldType);
+				LoadBinder lb = dialect.getLoadBinder(props.foreignField.fieldType);
+				props.saveBinder = (stmt, index, value) -> sb.bind(stmt, index, (value == null ? null : feProp.idField.field.get(value)));
+				props.loadBinder = (rs, index) -> {
+					Object fkeyValue = lb.convert(rs, index);
+					if (fkeyValue == null)
+						return null;
+					Object foreignObject = feClass.newInstance();
+					feProp.idField.field.set(foreignObject, fkeyValue);
+					return foreignObject;
+				};
+			}
+			else {
+				props.saveBinder = dialect.getSaveBinder(field.getType());
+				props.loadBinder = dialect.getLoadBinder(field.getType());
+			}
 			if (props.saveBinder == null)
 				throw new IllegalArgumentException("Unsupported field type for field " + field.getName());
-			if (field.isAnnotationPresent(JSon.class))
-				props.loadBinder = dialect.getJSonLoadBinder(props.fieldType);
-			else props.loadBinder = dialect.getLoadBinder(field.getType());
 		}
 
 		Collection<String> insertColumns = insertableFields.stream().map(field -> field.columnName).collect(toList());

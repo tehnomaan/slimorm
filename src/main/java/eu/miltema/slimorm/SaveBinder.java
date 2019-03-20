@@ -18,5 +18,5 @@ public interface SaveBinder {
 	 * @param value parameter value
 	 * @throws SQLException when anything goes wrong
 	 */
-	void bind(PreparedStatement stmt, int index, Object value) throws SQLException;
+	void bind(PreparedStatement stmt, int index, Object value) throws SQLException, IllegalAccessException;
 }

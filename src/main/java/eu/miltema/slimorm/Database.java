@@ -299,12 +299,18 @@ public class Database {
 		return ordinal;
 	}
 
-	void bindWhereParameters(PreparedStatement stmt, int ordinal, Object... whereParameters) throws SQLException {
+	void bindWhereParameters(PreparedStatement stmt, int ordinal, Object... whereParameters) throws SQLException, BindException {
 		if (whereParameters != null)
 			for(Object whereParam : whereParameters)
 				if (whereParam == null)
 					stmt.setNull(++ordinal, Types.VARCHAR);
-				else dialect.getSaveBinder(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+				else
+					try {
+						dialect.getSaveBinder(whereParam.getClass()).bind(stmt, ++ordinal, whereParam);
+					}
+					catch(IllegalAccessException iae) {
+						throw new BindException("Unable to access field", iae);
+					}
 	}
 
 	synchronized <T> T runStatements(TransactionStatements<T> statements) throws SQLException, BindException {

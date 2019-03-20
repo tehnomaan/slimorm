@@ -110,7 +110,7 @@ public class SqlQuery {
 	private String getSqlStatement(Class<?> entityClass) {
 		EntityProperties props = database.dialect.getProperties(entityClass);
 		if (sql == null)
-			sql = props.sqlSelect;
+			sql = props.getSqlSelect();
 		if (whereExpression != null)
 			sql += " WHERE " + whereExpression;
 		if (orderBy != null)

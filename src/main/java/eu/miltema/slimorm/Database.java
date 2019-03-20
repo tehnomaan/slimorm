@@ -82,7 +82,7 @@ public class Database {
 		EntityProperties props = dialect.getProperties(entity.getClass());
 		return runStatements((db, conn) -> {
 			boolean hasId = (props.idField != null);
-			String sql = props.sqlInsert + props.sqlInsertValues;
+			String sql = props.getSqlInsert() + props.getSqlInsertValues();
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
 				bindParameters(0, entity, props, stmt, props.insertableFields);
@@ -111,7 +111,7 @@ public class Database {
 		Object[] array = entities.stream().toArray();
 		EntityProperties props = dialect.getProperties(array[0].getClass());
 		return runStatements((db, conn) -> {
-			String sql = props.sqlInsert + entities.stream().map(e -> props.sqlInsertValues).collect(Collectors.joining(", "));
+			String sql = props.getSqlInsert() + entities.stream().map(e -> props.getSqlInsertValues()).collect(Collectors.joining(", "));
 			logger.accept(sql);
 			boolean hasId = (props.idField != null);
 			try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
@@ -142,7 +142,7 @@ public class Database {
 		if (props.idField == null)
 			throw new BindException("Missing @Id field in " + entity.getClass().getSimpleName());
 		int count = runStatements((db, conn) -> {
-			String sql = props.sqlUpdate + " WHERE " + props.sqlWhere;
+			String sql = props.getSqlUpdate() + " WHERE " + props.getSqlWhere();
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				int ordinal = bindParameters(0, entity, props, stmt, props.updatableFields);
@@ -166,7 +166,7 @@ public class Database {
 		EntityProperties props = dialect.getProperties(entityClass);
 		if (props.idField == null)
 			throw new BindException("Missing @Id field in " + entityClass.getSimpleName());
-		if (deleteWhere(entityClass, props.sqlWhere, id) != 1)
+		if (deleteWhere(entityClass, props.getSqlWhere(), id) != 1)
 			throw new RecordNotFoundException();
 	}
 
@@ -182,7 +182,7 @@ public class Database {
 	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws BindException, SQLException {
 		return runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entityClass);
-			String sql = props.sqlDelete + " WHERE " + whereExpression;
+			String sql = props.getSqlDelete() + " WHERE " + whereExpression;
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				bindWhereParameters(stmt, 0, whereParameters);
@@ -229,7 +229,7 @@ public class Database {
 	 * @throws BindException when data binding fails
 	 */
 	public <T> List<T> listAll(Class<? extends T> entityClass) throws BindException, SQLException {
-		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger).list(entityClass);
+		return new SqlQuery(this, dialect.getProperties(entityClass).getSqlSelect(), logger).list(entityClass);
 	}
 
 	/**
@@ -243,7 +243,7 @@ public class Database {
 	 * @throws RecordNotFoundException when referenced entity was not found in database
 	 */
 	public <T> T getById(Class<? extends T> entityClass, Object id) throws BindException, SQLException, RecordNotFoundException {
-		T entity = where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
+		T entity = where(dialect.getProperties(entityClass).getSqlWhere(), id).fetch(entityClass);
 		if (entity == null)
 			throw new RecordNotFoundException();
 		else return entity;

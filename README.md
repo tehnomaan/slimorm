@@ -89,6 +89,8 @@ SlimORM supports these javax.persistence annotations when declaring entities:
 * **@Transient** - annotation @Transient and Java modifier transient have the same effect: SlimORM will not read/write this field to the database
 * **@Id** - declares a primary key field. Only single-field primary keys are supported - composite primary keys are not
 * **@GeneratedValue** - database generates the value for this field. INSERT & UPDATE will not modify this field
+* **ManyToOne** - defines a many-to-one relationship. In database, this field must be a foreign key field to target entity table.
+    SlimORM only fills in the referenced entities while reading from database. When writing, only the foreign key is persisted (the referenced entity has to be persisted expicitly beforehand).
 * **@JSon** - declares that this field will be stored as a JSon object. This is not a javax.persistence annotation, but SlimORM annotation
 
 For example:
@@ -110,7 +112,11 @@ public class Employee {
 
 	transient boolean isDirty2;
 
-	@JSon Contract[] contracts;
+	@JSon
+	Contract[] contracts;
+
+	@ManyToOne
+	Department department;
 }
 ```
 

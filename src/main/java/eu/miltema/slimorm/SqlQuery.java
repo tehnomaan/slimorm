@@ -3,6 +3,8 @@ package eu.miltema.slimorm;
 import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import static java.util.stream.Collectors.*;
 import java.util.stream.Stream;
 
@@ -62,7 +64,8 @@ public class SqlQuery {
 					FieldProperties[] fields = getFieldMappers(rs, database.dialect.getProperties(entityClass));
 					while(rs.next())
 						list.add(buildEntity(entityClass, rs, fields));
-					attachReferences(fields, list);
+					if (!list.isEmpty())
+						attachReferences(fields, () -> list.stream());
 					return list;
 				}
 			}
@@ -86,7 +89,11 @@ public class SqlQuery {
 				try(ResultSet rs = stmt.executeQuery()) {
 					if (!rs.next())
 						return null;
-					return buildEntity(entityClass, rs, getFieldMappers(rs, database.dialect.getProperties(entityClass)));
+					FieldProperties[] fields = getFieldMappers(rs, database.dialect.getProperties(entityClass));
+					T entity = buildEntity(entityClass, rs, getFieldMappers(rs, database.dialect.getProperties(entityClass)));
+					if (entity != null)
+						attachReferences(fields, () -> Stream.of(entity));
+					return entity;
 				}
 			}
 		});
@@ -152,8 +159,8 @@ public class SqlQuery {
 		return entity;
 	}
 
-	private void attachReferences(FieldProperties[] fields, ArrayList<?> list) throws SQLException, BindException {
-		if (!initReferences || list.isEmpty())
+	private void attachReferences(FieldProperties[] fields, Supplier<Stream<?>> streamSupplier) throws SQLException, BindException {
+		if (!initReferences)
 			return;
 		for(FieldProperties fprop : fields) {
 			if (fprop.foreignField == null)
@@ -161,7 +168,7 @@ public class SqlQuery {
 			Class<?> tgtClass = fprop.fieldType;// referenced class
 			EntityProperties targetProps = database.dialect.getProperties(tgtClass);
 			FieldProperties foreignIdFld = targetProps.idField;// id field of referenced class
-			Set<Object> refkeys = list.stream().
+			Set<Object> refkeys = streamSupplier.get().
 					map(rec -> fprop.getFieldValue(rec)).
 					filter(fentity -> fentity != null).
 					map(fentity -> foreignIdFld.getFieldValue(fentity)).
@@ -173,7 +180,7 @@ public class SqlQuery {
 			q.whereExpression = foreignIdFld.columnName + " IN (" + refkeys.stream().map(refkey -> "?").collect(joining(",")) + ")";
 			q.parameters = refkeys.toArray(new Object[refkeys.size()]);
 			Map<Object, Object> refmap = q.stream(tgtClass).collect(toMap(e -> foreignIdFld.getFieldValue(e), e -> e));//map of foreign entities by key
-			list.stream().
+			streamSupplier.get().
 				filter(e -> fprop.getFieldValue(e) != null).
 				forEach(e -> fprop.setFieldValue(e, refmap.get(foreignIdFld.getFieldValue(fprop.getFieldValue(e)))));//replace foreign entity in each reference
 		}

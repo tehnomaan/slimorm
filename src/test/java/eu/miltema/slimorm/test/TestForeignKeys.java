@@ -59,6 +59,15 @@ public class TestForeignKeys extends AbstractDatabaseTest {
 	}
 
 	@Test
+	public void testFetchWithAllColumns() throws Exception {
+		EntityFKey ef = db.where("id=?", key2).referencedColumns("*").fetch(EntityFKey.class);
+		assertEquals("Mary", ef.entity.name);
+		assertEquals(80, ef.entity.fInt1.intValue());
+		assertEquals("abc", ef.entityWithTypes.fString);
+		assertArrayEquals(new String[] {"xyz", "123"}, ef.entityWithTypes.fJson2);
+	}
+
+	@Test
 	public void testListAllColumns() throws Exception {
 		EntityFKey ef = db.where("id=?", key2).referencedColumns("*").list(EntityFKey.class).get(0);
 		assertEquals("Mary", ef.entity.name);

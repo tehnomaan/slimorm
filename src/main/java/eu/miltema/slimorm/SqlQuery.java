@@ -27,6 +27,12 @@ public class SqlQuery {
 	private String referencedColumns;
 	private Map<Class<?>, String> mapReferencedColumns;
 
+	/**
+	 * Create a query object with custom SQL and custom logger
+	 * @param database database link
+	 * @param sql SQL statement
+	 * @param logger optonal custom logger
+	 */
 	SqlQuery(Database database, String sql, Consumer<String> logger) {
 		this.database = database;
 		this.sql = sql;

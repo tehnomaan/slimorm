@@ -121,7 +121,7 @@ public class TestTypes  extends AbstractDatabaseTest {
 
 	@Test
 	public void testJSon() throws Exception {
-		TestStruct s = new TestStruct();
+		JSonStruct s = new JSonStruct();
 		s.attr1 = "abc";
 		s.attr2 = 4.76;
 		s.attr3 = true;

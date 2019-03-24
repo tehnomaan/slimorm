@@ -23,19 +23,19 @@ public class DefaultDialect implements Dialect {
 
 	public DefaultDialect() {
 		saveBinders.put(Byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
-		saveBinders.put(byte.class, (stmt, i, param) -> stmt.setInt(i, ((Byte)param).intValue() & 255));
+		saveBinders.put(byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
 		saveBinders.put(Short.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Short)param).intValue());});
-		saveBinders.put(short.class, (stmt, i, param) -> stmt.setInt(i, ((Short)param).intValue()));
+		saveBinders.put(short.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Short)param).intValue());});
 		saveBinders.put(Integer.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, (Integer)param);});
-		saveBinders.put(int.class, (stmt, i, param) -> stmt.setInt(i, (Integer)param));
-		saveBinders.put(Long.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setLong(i, (Long)param);});
-		saveBinders.put(long.class, (stmt, i, param) -> stmt.setLong(i, (Long)param));
+		saveBinders.put(int.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, (Integer)param);});
+		saveBinders.put(Long.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, BIGINT); else stmt.setLong(i, (Long)param);});
+		saveBinders.put(long.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, BIGINT); else stmt.setLong(i, (Long)param);});
 		saveBinders.put(Float.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, FLOAT); else stmt.setFloat(i, (Float)param);});
-		saveBinders.put(float.class, (stmt, i, param) -> stmt.setFloat(i, (Float)param));
+		saveBinders.put(float.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, FLOAT); else stmt.setFloat(i, (Float)param);});
 		saveBinders.put(Double.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, DOUBLE); else stmt.setDouble(i, (Double)param);});
-		saveBinders.put(double.class, (stmt, i, param) -> stmt.setDouble(i, (Double)param));
+		saveBinders.put(double.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setDouble(i, (Double)param);});
 		saveBinders.put(Boolean.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, BOOLEAN); else stmt.setBoolean(i, (Boolean)param);});
-		saveBinders.put(boolean.class, (stmt, i, param) -> stmt.setBoolean(i, (Boolean)param));
+		saveBinders.put(boolean.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, BOOLEAN); else stmt.setBoolean(i, (Boolean)param);});
 		saveBinders.put(String.class, (stmt, i, param) -> stmt.setString(i, (String)param));
 		saveBinders.put(Timestamp.class, (stmt, i, param) -> stmt.setTimestamp(i, (Timestamp)param));
 		saveBinders.put(Instant.class, (stmt, i, param) -> stmt.setTimestamp(i, (param == null ? null : Timestamp.from((Instant)param))));

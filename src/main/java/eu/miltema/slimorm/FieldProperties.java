@@ -21,4 +21,20 @@ public class FieldProperties {
 	public String toString() {
 		return field.getName() + "/" + columnName;
 	}
+
+	public Object getFieldValue(Object object) {
+		try {
+			return field.get(object);
+		} catch (IllegalArgumentException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void setFieldValue(Object object, Object value) {
+		try {
+			field.set(object, value);
+		} catch (IllegalArgumentException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

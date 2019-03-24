@@ -2,14 +2,14 @@ package eu.miltema.slimorm.test;
 
 import static org.junit.Assert.*;
 
+import java.sql.SQLException;
 import java.util.List;
 import static java.util.stream.Collectors.*;
 import java.util.stream.*;
 
 import org.junit.*;
 
-import eu.miltema.slimorm.RecordNotFoundException;
-import eu.miltema.slimorm.TransactionException;
+import eu.miltema.slimorm.*;
 
 /**
  * Tests INSERT/UPDATE/DELETE functionality. Prerequisite is that database slimtest exists and user slimuser has access to it (password slim1234)
@@ -43,6 +43,16 @@ public class TestWrite extends AbstractDatabaseTest {
 		e.name = "Mike";
 		e = db.getById(EntityDefaultId.class, db.insert(e).id);
 		assertEquals("Mike", e.name);
+	}
+
+	@Test
+	public void testManualId() throws Exception {
+		assertEquals(19L, db.insert(new EntityWithManualId(19L, "Mike", 18)).id.longValue());
+	}
+
+	@Test(expected = SQLException.class)
+	public void testManualIdMissing() throws Exception {
+		db.insert(new EntityWithManualId(null, "Mike", 18));//SQLException, since id has not been evaluated
 	}
 
 	@Test

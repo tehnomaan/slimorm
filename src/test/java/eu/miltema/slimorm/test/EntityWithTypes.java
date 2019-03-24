@@ -35,7 +35,7 @@ public class EntityWithTypes {
 	public ZonedDateTime fZonedDateTime;
 	public LocalDate fLocalDate;
 	public LocalDateTime fLocalDateTime;
-	@JSon public TestStruct fJson1;
+	@JSon public JSonStruct fJson1;
 	@JSon public String[] fJson2;
 
 	public EntityWithTypes() {

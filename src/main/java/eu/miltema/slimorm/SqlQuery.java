@@ -3,6 +3,7 @@ package eu.miltema.slimorm;
 import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
+import static java.util.stream.Collectors.*;
 import java.util.stream.Stream;
 
 /**
@@ -20,6 +21,9 @@ public class SqlQuery {
 	String groupBy;
 	Object[] parameters;
 	private Consumer<String> logger = message -> {};
+	private boolean initReferences = false;//=true when referenced columns must be initialized
+	private String referencedColumns;
+	private Map<Class<?>, String> mapReferencedColumns;
 
 	SqlQuery(Database database, String sql, Consumer<String> logger) {
 		this.database = database;
@@ -58,6 +62,7 @@ public class SqlQuery {
 					FieldProperties[] fields = getFieldMappers(rs, database.dialect.getProperties(entityClass));
 					while(rs.next())
 						list.add(buildEntity(entityClass, rs, fields));
+					attachReferences(fields, list);
 					return list;
 				}
 			}
@@ -145,5 +150,62 @@ public class SqlQuery {
 					throw new BindException("Unable to bind result from " + fields[i].columnName + " to entity field " + fields[i].field.getName(), e);
 				}
 		return entity;
+	}
+
+	private void attachReferences(FieldProperties[] fields, ArrayList<?> list) throws SQLException, BindException {
+		if (!initReferences || list.isEmpty())
+			return;
+		for(FieldProperties fprop : fields) {
+			if (fprop.foreignField == null)
+				continue;
+			Class<?> tgtClass = fprop.fieldType;// referenced class
+			EntityProperties targetProps = database.dialect.getProperties(tgtClass);
+			FieldProperties foreignIdFld = targetProps.idField;// id field of referenced class
+			Set<Object> refkeys = list.stream().
+					map(rec -> fprop.getFieldValue(rec)).
+					filter(fentity -> fentity != null).
+					map(fentity -> foreignIdFld.getFieldValue(fentity)).
+					filter(key -> key != null).
+					collect(toSet());//list of foreign keys
+			String selColumns = (mapReferencedColumns == null ? null : mapReferencedColumns.get(tgtClass));
+			SqlQuery q = new SqlQuery(database, sql, logger);
+			q.sql = "SELECT " + targetProps.idField.columnName + "," + (selColumns == null ? referencedColumns : selColumns) + " FROM " + targetProps.tableName;
+			q.whereExpression = foreignIdFld.columnName + " IN (" + refkeys.stream().map(refkey -> "?").collect(joining(",")) + ")";
+			q.parameters = refkeys.toArray(new Object[refkeys.size()]);
+			Map<Object, Object> refmap = q.stream(tgtClass).collect(toMap(e -> foreignIdFld.getFieldValue(e), e -> e));//map of foreign entities by key
+			list.stream().
+				filter(e -> fprop.getFieldValue(e) != null).
+				forEach(e -> {
+					fprop.setFieldValue(e, refmap.get(foreignIdFld.getFieldValue(fprop.getFieldValue(e))));
+				});//replace foreign entity in each reference
+		}
+	}
+
+	/**
+	 * Set the columns to fetch for all referenced entties
+	 *
+	 * @param columns comma-separated column list; * indicates all columns
+	 * @return the same query object
+	 */
+	public SqlQuery referencedColumns(String columns) {
+		referencedColumns = columns;
+		initReferences = true;
+		return this;
+	}
+
+	/**
+	 * Set the columns to fetch for a specific referenced entity.
+	 * This method can be used when an entity is referencing multiple other entities and a different set of columns must be fetched for each entity
+	 *
+	 * @param entityClass referenced entity class
+	 * @param columns comma-separated column list; * indicates all columns
+	 * @return the same query object
+	 */
+	public SqlQuery referencedColumns(Class<?> entityClass, String columns) {
+		if (mapReferencedColumns == null)
+			mapReferencedColumns = new HashMap<>();
+		mapReferencedColumns.put(entityClass, columns);
+		initReferences = true;
+		return this;
 	}
 }

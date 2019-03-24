@@ -12,13 +12,17 @@ public class EntityFKey {
 
 	@Column(name = "entity_id")
 	@ManyToOne
-	Entity entity;
+	EntityWithManualId entity;
+
+	@ManyToOne
+	EntityWithTypes entityWithTypes;
 
 	public EntityFKey() {
 	}
 
-	public EntityFKey(String name, Entity entity) {
+	public EntityFKey(String name, EntityWithManualId entity, EntityWithTypes et) {
 		this.name = name;
 		this.entity = entity;
+		this.entityWithTypes = et;
 	}
 }

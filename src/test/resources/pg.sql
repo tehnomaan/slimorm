@@ -9,6 +9,17 @@ CREATE TABLE public.entity
 ALTER TABLE public.entity
   OWNER TO slimuser;
 
+DROP TABLE IF EXISTS public.entity_with_manual_id;
+CREATE TABLE public.entity_with_manual_id
+(
+  id bigint NOT NULL,
+  name character varying not null,
+  f_int1 integer,
+  CONSTRAINT entity_with_manual_id_pkey PRIMARY KEY (id)
+);
+ALTER TABLE public.entity_with_manual_id
+  OWNER TO slimuser;
+
 
 DROP TABLE IF EXISTS public.entity_with_types;
 CREATE TABLE public.entity_with_types
@@ -47,5 +58,6 @@ CREATE TABLE public.entity_fkey
   id serial NOT NULL,
   name character varying,
   entity_id integer,
+  entity_with_types integer,
   CONSTRAINT entity_fkey_pkey PRIMARY KEY (id)
 );

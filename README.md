@@ -90,7 +90,8 @@ SlimORM supports these javax.persistence annotations when declaring entities:
 * **@Id** - declares a primary key field. Only single-field primary keys are supported - composite primary keys are not
 * **@GeneratedValue** - database generates the value for this field. INSERT & UPDATE will not modify this field
 * **ManyToOne** - defines a many-to-one relationship. In database, this field must be a foreign key field to target entity table.
-    SlimORM only fills in the referenced entities while reading from database. When writing, only the foreign key is persisted (the referenced entity has to be persisted expicitly beforehand).
+    When writing, only the foreign key is persisted (the referenced entity has to be persisted expicitly beforehand).
+    When reading, only referenced entity id is filled. 
 * **@JSon** - declares that this field will be stored as a JSon object. This is not a javax.persistence annotation, but SlimORM annotation
 
 For example:
@@ -122,6 +123,21 @@ public class Employee {
 
 NB! Since most database designs have an auto-generated primary key with name _id_, then SlimORM has a special shorthand: a field with name _id_ and without @Id is still treated as if both annotations were present.
 If this is not what You need, declare Your primary key with a different name or add @Id annotation to a different field.
+
+# @ManyToOne and Foreign Keys
+
+In the Employee case above, table employees must contain column _department_, which is a foreign key field, referencing table _department_.
+* When writing Employee-entity to database, only the foreign key is persisted (the referenced entity itself has to be persisted expicitly beforehand)
+* When reading Employee-entity from database, only referenced entity id is filled inside Department-object (for performance reasons)
+* To load Employee entities with fully initialized Department-entites, use method _referencedColumns_
+
+```java
+		db.where("id=?", id).referencedColumns("*").list(Employee.class);//load all columns for all referenced entities
+		db.where("id=?", id).
+			referencedColumns(Department.class, "*").//load all columns for Department references
+			referencedColumns("id, name").//load id, name columns for all other references
+			list(Employee.class);
+```
 
 # Transactions
 

@@ -3,13 +3,10 @@ package eu.miltema.slimorm.dialect;
 import static java.sql.Types.*;
 import static java.util.stream.Collectors.joining;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
-
-import javax.persistence.*;
 
 import com.google.gson.Gson;
 
@@ -99,15 +96,13 @@ public class DefaultDialect implements Dialect {
 	}
 
 	@Override
-	public String getTableName(Class<?> clazz) {
-		Table table = clazz.getAnnotation(Table.class);
-		return (table != null && !table.name().isEmpty() ? table.name() : toSnakeCase(clazz.getSimpleName()));
+	public String getTableName(String javaName) {
+		return toSnakeCase(javaName);
 	}
 
 	@Override
-	public String getColumnName(Field field) {
-		Column column = field.getAnnotation(Column.class);
-		return (column != null && !column.name().isEmpty() ? column.name() : toSnakeCase(field.getName()));
+	public String getColumnName(String javaName) {
+		return toSnakeCase(javaName);
 	}
 
 	@Override

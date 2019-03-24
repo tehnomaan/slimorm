@@ -29,7 +29,9 @@ public class EntityProperties {
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
 		this.dialect = dialect;
 		initFields(clazz);
-		tableName = dialect.getTableName(clazz);
+
+		Table table = clazz.getAnnotation(Table.class);
+		tableName = (table != null && !table.name().isEmpty() ? table.name() : dialect.getTableName(clazz.getSimpleName()));
 	}
 
 	private void initFields(Class<?> clazz) {
@@ -43,17 +45,7 @@ public class EntityProperties {
 					continue;
 				field.setAccessible(true);
 
-				FieldProperties props = new FieldProperties();
-				props.field = field;
-				props.fieldType = field.getType();
-				props.columnName = dialect.getColumnName(field);
-				if (field.isAnnotationPresent(Column.class)) {
-					Column column = field.getAnnotation(Column.class);
-					props.insertable = column.insertable();
-					props.updatable = column.updatable();
-				}
-				if (field.isAnnotationPresent(GeneratedValue.class))
-					props.insertable = props.updatable = false;
+				FieldProperties props = new FieldProperties(field, dialect);
 				
 				if (field.getAnnotation(Id.class) != null) {
 					idField = props;

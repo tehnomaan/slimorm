@@ -58,6 +58,6 @@ CREATE TABLE public.entity_fkey
   id serial NOT NULL,
   name character varying,
   entity_id integer,
-  entity_with_types integer,
+  entity_with_types_id integer,
   CONSTRAINT entity_fkey_pkey PRIMARY KEY (id)
 );

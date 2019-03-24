@@ -1,6 +1,5 @@
 package eu.miltema.slimorm.dialect;
 
-import java.lang.reflect.Field;
 import java.util.Collection;
 
 import eu.miltema.slimorm.*;
@@ -20,16 +19,16 @@ public interface Dialect {
 	SaveBinder getSaveBinder(Class<?> fieldType);
 
 	/**
-	 * @param clazz entity class
+	 * @param javaName entity class name
 	 * @return database table name for this Java class
 	 */
-	String getTableName(Class<?> clazz);
+	String getTableName(String javaName);
 
 	/**
-	 * @param field entity field
+	 * @param javaName java feld name
 	 * @return column name for this field
 	 */
-	String getColumnName(Field field);
+	String getColumnName(String javaName);
 
 	/**
 	 * This method provides the leading part of INSERT-statement, up until VALUES-word (inclusive)

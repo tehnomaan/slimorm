@@ -175,9 +175,7 @@ public class SqlQuery {
 			Map<Object, Object> refmap = q.stream(tgtClass).collect(toMap(e -> foreignIdFld.getFieldValue(e), e -> e));//map of foreign entities by key
 			list.stream().
 				filter(e -> fprop.getFieldValue(e) != null).
-				forEach(e -> {
-					fprop.setFieldValue(e, refmap.get(foreignIdFld.getFieldValue(fprop.getFieldValue(e))));
-				});//replace foreign entity in each reference
+				forEach(e -> fprop.setFieldValue(e, refmap.get(foreignIdFld.getFieldValue(fprop.getFieldValue(e)))));//replace foreign entity in each reference
 		}
 	}
 

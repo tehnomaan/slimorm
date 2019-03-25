@@ -85,6 +85,7 @@ public class TestForeignKeys extends AbstractDatabaseTest {
 		assertEquals(445, ef.entityWithTypes.fInt1);
 	}
 
+	@Test
 	public void testListSpecificClassColumns() throws Exception {
 		EntityFKey ef = db.where("id=?", key2).
 				referencedColumns(EntityWithTypes.class, "f_int1").//fetch f_int1 for EntityWithTypes only

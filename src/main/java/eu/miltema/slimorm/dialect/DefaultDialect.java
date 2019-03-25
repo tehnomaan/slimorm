@@ -91,7 +91,7 @@ public class DefaultDialect implements Dialect {
 	}
 
 	protected String toSnakeCase(String s) {
-		return s.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
+		return s.replaceAll("([a-z]|[0-9])([A-Z]+)", "$1_$2").toLowerCase();
 		
 	}
 

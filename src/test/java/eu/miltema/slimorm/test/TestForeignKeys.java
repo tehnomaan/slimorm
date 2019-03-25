@@ -95,4 +95,9 @@ public class TestForeignKeys extends AbstractDatabaseTest {
 		assertNull(ef.entityWithTypes.fString);
 		assertEquals(445, ef.entityWithTypes.fInt1);
 	}
+
+	@Test
+	public void testColumnNames() throws Exception {
+		assertEquals(2, db.sql("SELECT id, entity_id, entity_with_types_id FROM entity_fkey").list(EntityFKey.class).size());
+	}
 }

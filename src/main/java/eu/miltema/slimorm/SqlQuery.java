@@ -128,7 +128,7 @@ public class SqlQuery {
 	private String getSqlStatement(Class<?> entityClass) {
 		EntityProperties props = database.dialect.getProperties(entityClass);
 		if (sql == null)
-			sql = props.getSqlSelect();
+			sql = props.sqlSelect;
 		if (whereExpression != null)
 			sql += " WHERE " + whereExpression;
 		if (orderBy != null)

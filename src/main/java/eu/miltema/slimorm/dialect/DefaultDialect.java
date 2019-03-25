@@ -141,8 +141,10 @@ public class DefaultDialect implements Dialect {
 	@Override
 	public EntityProperties getProperties(Class<?> entityClass) {
 		EntityProperties props = entityProps.get(entityClass);
-		if (props == null)
+		if (props == null) {
 			entityProps.put(entityClass, props = new EntityProperties(entityClass, this));
+			props.finishInitialization();
+		}
 		return props;
 	}
 

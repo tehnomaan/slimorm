@@ -24,7 +24,7 @@ public class EntityProperties {
 	Collection<FieldProperties> updatableFields = new ArrayList<>();//cached fields to make UPDATE binding faster
 	public Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
 	public FieldProperties idField;
-	private String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
+	public String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
 		this.dialect = dialect;
@@ -74,9 +74,10 @@ public class EntityProperties {
 	}
 
 	/**
-	 * Method initSqlStatements cannot be invoked from constructor - otherwise inter-entity circular references would cause infinite initSql-loops
+	 * Finish 2-phase initialization.
+	 * This method cannot be invoked from constructor - otherwise inter-entity circular references would cause infinite initSql-loops
 	 */
-	private EntityProperties initSqlStatements() {
+	public void finishInitialization() {
 		for(FieldProperties props : fields) {
 			Field field = props.field;
 			if (field.isAnnotationPresent(JSon.class)) {
@@ -117,26 +118,5 @@ public class EntityProperties {
 		sqlSelect = dialect.getSqlForSelect(tableName, columns);
 		if (idField != null)
 			sqlWhere = dialect.getSqlForWhere(tableName, idField.columnName);
-
-		return this;
-	}
-
-	public String getSqlInsert() {
-		return (sqlInsert == null ? initSqlStatements().sqlInsert : sqlInsert);
-	}
-	public String getSqlUpdate() {
-		return (sqlUpdate == null ? initSqlStatements().sqlUpdate : sqlUpdate);
-	}
-	public String getSqlDelete() {
-		return (sqlDelete == null ? initSqlStatements().sqlDelete : sqlDelete);
-	}
-	public String getSqlSelect() {
-		return (sqlSelect == null ? initSqlStatements().sqlSelect : sqlSelect);
-	}
-	public String getSqlWhere() {
-		return (sqlWhere == null ? initSqlStatements().sqlWhere : sqlWhere);
-	}
-	public String getSqlInsertValues() {
-		return (sqlInsertValues == null ? initSqlStatements().sqlInsertValues : sqlInsertValues);
 	}
 }

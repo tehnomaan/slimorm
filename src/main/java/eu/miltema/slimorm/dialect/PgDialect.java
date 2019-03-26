@@ -12,13 +12,13 @@ import com.google.gson.Gson;
 
 import eu.miltema.slimorm.*;
 
-public class DefaultDialect implements Dialect {
+public class PgDialect implements Dialect {
 
 	Map<Class<?>, EntityProperties> entityProps = new HashMap<>();
 	HashMap<Class<?>, SaveBinder> saveBinders = new HashMap<>();
 	HashMap<Class<?>, LoadBinder> loadBinders = new HashMap<>();
 
-	public DefaultDialect() {
+	public PgDialect() {
 		saveBinders.put(Byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
 		saveBinders.put(byte.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Byte)param).intValue() & 255);});
 		saveBinders.put(Short.class, (stmt, i, param) -> {if (param == null) stmt.setNull(i, INTEGER); else stmt.setInt(i, ((Short)param).intValue());});

@@ -166,7 +166,7 @@ It is possible to return an object of any type from the transaction.
 By default, SlimORM uses PostgreSQL dialect. If that dialect is causing problems, You must implement a custom dialect and a superclass of Database:
 
 ```java
-public class MySqlDialect extends DefaultDialect {
+public class MySqlDialect extends PgDialect {
 	... // override any methods that cause problems
 }
 public class MySqlDatabase extends Database {
@@ -190,7 +190,7 @@ String, byte, Byte, short, Short, int, Integer, long, Long, float, Float, double
 
 Be aware that PostgreSQL does not store timezone id into record (even when data type is _with time zone_). Therefore, all time-related columns store correct instant in time, but have lost the original timezone id.
 
-For data types not listed above, one must superclass DefaultDialect and provide custom saveBinder and loadBinder. 
+For data types not listed above, one must superclass PgDialect and provide custom saveBinder and loadBinder. 
 
 # Logging
 

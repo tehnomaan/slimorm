@@ -336,7 +336,7 @@ public class Database {
 	}
 
 	public Dialect getDialect() {
-		return new DefaultDialect();
+		return new PgDialect();
 	}
 
 	private void initDialect() {

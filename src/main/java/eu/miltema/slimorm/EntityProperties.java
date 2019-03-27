@@ -80,7 +80,11 @@ public class EntityProperties {
 	public void finishInitialization() {
 		for(FieldProperties props : fields) {
 			Field field = props.field;
-			if (field.isAnnotationPresent(JSon.class)) {
+			if (field.getType().isEnum()) {
+				props.saveBinder = dialect.getEnumSaveBinder(props.fieldType);
+				props.loadBinder = dialect.getEnumLoadBinder(props.fieldType);
+			}
+			else if (field.isAnnotationPresent(JSon.class)) {
 				props.saveBinder = dialect.getJSonSaveBinder(props.fieldType);
 				props.loadBinder = dialect.getJSonLoadBinder(props.fieldType);
 			}

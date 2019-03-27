@@ -7,9 +7,7 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
-
 import com.google.gson.Gson;
-
 import eu.miltema.slimorm.*;
 
 public class PgDialect implements Dialect {
@@ -107,9 +105,7 @@ public class PgDialect implements Dialect {
 
 	@Override
 	public String getSqlForInsert(String tableName, Collection<String> mutableColumns) {
-		return "INSERT INTO " + tableName + "(" +
-				mutableColumns.stream().collect(joining(",")) +
-				") VALUES ";
+		return "INSERT INTO " + tableName + "(" + mutableColumns.stream().collect(joining(",")) + ") VALUES ";
 	}
 
 	@Override
@@ -119,8 +115,7 @@ public class PgDialect implements Dialect {
 
 	@Override
 	public String getSqlForUpdate(String tableName, Collection<String> mutableColumns) {
-		return "UPDATE " + tableName + " SET " +
-				mutableColumns.stream().map(column -> column + "=?").collect(joining(","));
+		return "UPDATE " + tableName + " SET " + mutableColumns.stream().map(column -> column + "=?").collect(joining(","));
 	}
 
 	@Override
@@ -149,34 +144,48 @@ public class PgDialect implements Dialect {
 	}
 
 	@Override
-	public LoadBinder getJSonLoadBinder(Class<?> fieldClass) {
+	public LoadBinder getJSonLoadBinder(Class<?> fieldType) {
 		return (rs, i) -> {
 			String json = rs.getString(i);
-			return (json == null ? null : new Gson().fromJson(json, fieldClass));
+			return (json == null ? null : new Gson().fromJson(json, fieldType));
 		};
 	}
 
 	@Override
-	public SaveBinder getJSonSaveBinder(Class<?> fieldClass) {
+	public SaveBinder getJSonSaveBinder(Class<?> fieldType) {
 		return (stmt, i, param) -> {
 			if (param != null) {
-				Object jobj;
 				try {
 //					PGobject jobj = new PGobject();
 //					jobj.setType("json");
 //					jobj.setValue(new Gson().toJson(param));
+//					stmt.setObject(i, jobj);
 					// Implement the above logic without the need of postgre dependencies
 					Class<?> clazz = Class.forName("org.postgresql.util.PGobject");
-					jobj = clazz.newInstance();
+					Object jobj = clazz.newInstance();
 					clazz.getMethod("setType", String.class).invoke(jobj, "json");
 					clazz.getMethod("setValue", String.class).invoke(jobj, new Gson().toJson(param));
+					stmt.setObject(i, jobj);
 				}
 				catch(Exception x) {
 					throw new SQLException(x);
 				}
-				stmt.setObject(i, jobj);
 			}
 			else stmt.setObject(i, null);
+		};
+	}
+
+	@Override
+	public SaveBinder getEnumSaveBinder(Class<?> fieldType) {
+		return (stmt, i, param) -> stmt.setString(i, (param == null ? null : param.toString()));
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	public LoadBinder getEnumLoadBinder(Class<?> fieldType) {
+		return (rs, i) -> {
+			String str = rs.getString(i);
+			return (str == null ? null : Enum.valueOf((Class<Enum>) fieldType, str));
 		};
 	}
 }

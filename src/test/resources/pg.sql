@@ -47,6 +47,7 @@ CREATE TABLE public.entity_with_types
   f_local_date_time timestamp without time zone,
   f_json1 json,
   f_json2 json,
+  f_enum character varying,
   CONSTRAINT entity_with_types_pkey PRIMARY KEY (id)
 );
 ALTER TABLE public.entity_with_types

@@ -8,6 +8,8 @@ import java.time.*;
 
 import org.junit.*;
 
+import eu.miltema.slimorm.test.EntityWithTypes.EType;
+
 public class TestTypes  extends AbstractDatabaseTest {
 
 	@BeforeClass
@@ -129,5 +131,12 @@ public class TestTypes  extends AbstractDatabaseTest {
 		e = db.getById(EntityWithTypes.class, e.id);
 		assertEquals(4.76, e.fJson1.attr2, .0001);
 		assertEquals("def", e.fJson2[1]);
+	}
+
+	@Test
+	public void testEnum() throws Exception {
+		EntityWithTypes e = db.insert(new EntityWithTypes(x -> x.fEnum = EType.BBB));
+		e = db.getById(EntityWithTypes.class, e.id);
+		assertEquals(EType.BBB, e.fEnum);
 	}
 }

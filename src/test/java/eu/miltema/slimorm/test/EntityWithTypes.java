@@ -38,6 +38,9 @@ public class EntityWithTypes {
 	@JSon public JSonStruct fJson1;
 	@JSon public String[] fJson2;
 
+	public enum EType {A1, A2, BBB};
+	public EType fEnum;
+
 	public EntityWithTypes() {
 	}
 

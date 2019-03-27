@@ -53,6 +53,8 @@ public interface Dialect {
 
 	EntityProperties getProperties(Class<?> entityClass);
 
-	LoadBinder getJSonLoadBinder(Class<?> fieldClass);
-	SaveBinder getJSonSaveBinder(Class<?> fieldClass);
+	LoadBinder getJSonLoadBinder(Class<?> fieldType);
+	SaveBinder getJSonSaveBinder(Class<?> fieldType);
+	SaveBinder getEnumSaveBinder(Class<?> fieldType);
+	LoadBinder getEnumLoadBinder(Class<?> fieldType);
 }

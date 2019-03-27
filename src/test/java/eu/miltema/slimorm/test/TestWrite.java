@@ -96,9 +96,9 @@ public class TestWrite extends AbstractDatabaseTest {
 
 	@Test
 	public void testLargeBulkInsert() throws Exception {
-		List<Entity> list = IntStream.rangeClosed(1, 10000).mapToObj(i -> new Entity("nimi" + i, i)).collect(toList());
+		List<Entity> list = IntStream.rangeClosed(1, 100000).mapToObj(i -> new Entity("nimi" + i, i)).collect(toList());
 		list = db.bulkInsert(list);
-		assertEquals(10000, list.stream().map(e -> e.id).collect(toSet()).size());
+		assertEquals(100000, list.stream().map(e -> e.id).collect(toSet()).size());
 	}
 
 	@Test(expected = RecordNotFoundException.class)

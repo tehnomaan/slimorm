@@ -1,9 +1,11 @@
 package eu.miltema.slimorm;
 
+import static java.util.stream.Collectors.*;
+
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import javax.naming.*;
 import javax.sql.DataSource;
@@ -25,6 +27,7 @@ public class Database {
 	private Connection txConnection;//connection for current transaction; when not in transaction context, this field is null
 	private String schema = "public";
 	private Consumer<String> logger = message -> {};
+	private int batchSize = 1000;
 
 	/**
 	 * Create database object via datasource
@@ -71,6 +74,16 @@ public class Database {
 	}
 
 	/**
+	 * Modify the default batch size in bulk insert
+	 * @param size batch size
+	 * @return
+	 */
+	public Database setBatchSize(int size) {
+		this.batchSize = size;
+		return this;
+	}
+
+	/**
 	 * Insert a single entity into database
 	 * @param <T> entity type
 	 * @param entity entity to insert
@@ -100,34 +113,41 @@ public class Database {
 	/**
 	 * Insert a collection of entities into database as a batch. Batch insertion is faster than inserting one by one.
 	 * @param <T> entity type
-	 * @param entities collection of entities to insert (currently there is a limit on records count that depends on the SQL driver)
+	 * @param entities collection of entities to insert
 	 * @return the same entities, with @Id field (if any) being initialized
-	 * @throws SQLException when an SQL specific error occurs
+	 * @throws SQLException when an SQL specific error occurs (see method setBatchSize() in case of large entity lists)
 	 * @throws BindException when data binding fails
 	 */
 	public <T> List<T> bulkInsert(List<T> entities) throws BindException, SQLException {
-		if (entities.isEmpty())
+		if (entities == null || entities.isEmpty())
 			return entities;
-		Object[] array = entities.stream().toArray();
-		EntityProperties props = dialect.getProperties(array[0].getClass());
+		EntityProperties props = dialect.getProperties(entities.get(0).getClass());
 		return runStatements((db, conn) -> {
-			String sql = props.sqlInsert + entities.stream().map(e -> props.sqlInsertValues).collect(Collectors.joining(", "));
-			logger.accept(sql);
-			boolean hasId = (props.idField != null);
-			try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
-				int ordinal = 0;
-				for(int i = 0; i < array.length; i++)
-					ordinal = bindParameters(ordinal, array[i], props, stmt, props.insertableFields);
-				stmt.execute();
-				if (hasId) {
-					ResultSet rs = stmt.getGeneratedKeys();
-					int rowIndex = 0;
-					while(rs.next())
-						props.idField.field.set(array[rowIndex++], rs.getObject(1));
+			for(List<T> batch : partition(entities, batchSize)) {//split the entity list into smaller batches, to avoid jdbc driver limit
+				String sql = props.sqlInsert + batch.stream().map(e -> props.sqlInsertValues).collect(joining(", "));
+				logger.accept(sql);
+				boolean hasId = (props.idField != null);
+				try(PreparedStatement stmt = conn.prepareStatement(sql, hasId  ? new String[] {props.idField.columnName} : null)) {
+					int ordinal = 0;
+					int batchSize = batch.size();
+					for(int i = 0; i < batchSize; i++)
+						ordinal = bindParameters(ordinal, batch.get(i), props, stmt, props.insertableFields);
+					stmt.execute();
+					if (hasId) {
+						ResultSet rs = stmt.getGeneratedKeys();
+						int rowIndex = 0;
+						while(rs.next())
+							props.idField.field.set(batch.get(rowIndex++), rs.getObject(1));
+					}
 				}
 			}
 			return entities;
 		});
+	}
+
+	private <T> Collection<List<T>> partition(List<T> list, int size) {
+		final AtomicInteger counter = new AtomicInteger(0);
+		return list.stream().collect(groupingBy(it -> counter.getAndIncrement() / size)).values();
 	}
 
 	/**

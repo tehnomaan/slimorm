@@ -76,7 +76,7 @@ public class Database {
 	/**
 	 * Modify the default batch size in bulk insert
 	 * @param size batch size
-	 * @return
+	 * @return database object
 	 */
 	public Database setBatchSize(int size) {
 		this.batchSize = size;

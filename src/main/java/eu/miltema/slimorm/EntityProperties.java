@@ -28,7 +28,16 @@ public class EntityProperties {
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
 		this.dialect = dialect;
-		initFields(clazz);
+		try {
+			initFields(clazz);
+		}
+		catch(SlimormInitException sie) {
+			sie.setCausingClass(clazz);
+			throw sie;
+		}
+		catch(RuntimeException rte) {
+			throw new SlimormInitException(clazz, "Init failed", rte);
+		}
 
 		Table table = clazz.getAnnotation(Table.class);
 		tableName = (table != null && !table.name().isEmpty() ? table.name() : dialect.getTableName(clazz.getSimpleName()));
@@ -37,23 +46,32 @@ public class EntityProperties {
 	private void initFields(Class<?> clazz) {
 		while(clazz != Object.class) {
 			for(Field field : clazz.getDeclaredFields()) {
-				if ((field.getModifiers() & Modifier.TRANSIENT) != 0)
-					continue;
-				if (field.getAnnotation(Transient.class) != null)
-					continue;
-				if (field.isSynthetic())
-					continue;
-				field.setAccessible(true);
-
-				FieldProperties props = new FieldProperties(field, dialect);
-				
-				if (field.getAnnotation(Id.class) != null) {
-					idField = props;
-					idField.updatable = false;//by definition, primary keys are immutable. So, override the value
+				try {
+					if ((field.getModifiers() & Modifier.TRANSIENT) != 0)
+						continue;
+					if (field.getAnnotation(Transient.class) != null)
+						continue;
+					if (field.isSynthetic())
+						continue;
+					field.setAccessible(true);
+	
+					FieldProperties props = new FieldProperties(field, dialect);
+					
+					if (field.getAnnotation(Id.class) != null) {
+						idField = props;
+						idField.updatable = false;//by definition, primary keys are immutable. So, override the value
+					}
+	
+					fields.add(props);
+					mapColumnToField.put(props.columnName, props);
 				}
-
-				fields.add(props);
-				mapColumnToField.put(props.columnName, props);
+				catch(SlimormInitException sie) {
+					sie.setCausingField(field);
+					throw sie;
+				}
+				catch(RuntimeException rte) {
+					throw new SlimormInitException(field, "Init failed", rte);
+				}
 			}
 			clazz = clazz.getSuperclass();
 		}
@@ -68,9 +86,9 @@ public class EntityProperties {
 				updatableFields.add(fprop);
 		}
 		if (idField != null && fields.size() == 1)
-			throw new IllegalArgumentException("No other persistable fields found except @Id field");
+			throw new SlimormInitException(idField.field, "No other persistable fields found except @Id field", null);
 		else if (idField == null && fields.size() == 0)
-			throw new IllegalArgumentException("No persistable fields found");
+			throw new SlimormInitException(clazz, "No persistable fields found", null);
 	}
 
 	/**
@@ -89,6 +107,8 @@ public class EntityProperties {
 				props.loadBinder = dialect.getJSonLoadBinder(props.fieldType);
 			}
 			else if (field.isAnnotationPresent(ManyToOne.class)) {
+				if (props.fieldType.isPrimitive() || props.fieldType.getPackage().getName().startsWith("java"))
+					throw new SlimormInitException(field, "@ManyToOne field must be a custom entity class", null);
 				EntityProperties feProp = dialect.getProperties(props.fieldType);
 				Class<?> feClass = feProp.idField.field.getDeclaringClass();
 				props.foreignField = feProp.idField;
@@ -99,7 +119,7 @@ public class EntityProperties {
 					Object fkeyValue = lb.convert(rs, index);
 					if (fkeyValue == null)
 						return null;
-					Object foreignObject = feClass.newInstance();
+					Object foreignObject = feClass.getConstructor().newInstance();
 					feProp.idField.field.set(foreignObject, fkeyValue);
 					return foreignObject;
 				};
@@ -109,7 +129,7 @@ public class EntityProperties {
 				props.loadBinder = dialect.getLoadBinder(field.getType());
 			}
 			if (props.saveBinder == null)
-				throw new IllegalArgumentException("Unsupported field type for field " + field.getName());
+				throw new SlimormInitException(field, "Unsupported field type " + field.getType().toString(), null);
 		}
 
 		Collection<String> insertColumns = insertableFields.stream().map(field -> field.columnName).collect(toList());

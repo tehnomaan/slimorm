@@ -9,6 +9,8 @@ import java.util.stream.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import eu.miltema.slimorm.SlimormInitException;
+
 public class TestRead extends AbstractDatabaseTest {
 
 	@BeforeClass
@@ -16,12 +18,12 @@ public class TestRead extends AbstractDatabaseTest {
 		initDatabase();
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = SlimormInitException.class)
 	public void testEntityWithIdOnly() throws Exception {
 		db.getDialect().getProperties(EntityWithIdOnly.class);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = SlimormInitException.class)
 	public void testEntityWithoutFields() throws Exception {
 		db.getDialect().getProperties(EntityWithoutFields.class);
 	}

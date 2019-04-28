@@ -74,7 +74,7 @@ In addition, build.gradle or pom.xml must refer to database driver. For example,
 
 ```gradle
 dependencies {
-    implementation 'eu.miltema:slimorm:1.0.0'
+    implementation 'eu.miltema:slimorm:1.2.1'
     runtime 'org.postgresql:postgresql:42.2.5'
 }
 ```

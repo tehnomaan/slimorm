@@ -200,6 +200,47 @@ To keep the amount of dependencies low, SlimORM is not logging automatically. To
 Database db = new Database(...).setLogger(message -> System.out.println(message));
 ```
 
+# Authorization and Record-Level Restrictions
+
+To inject restrictions into all database-related queries (for example restrict to a specific account only), extend and use a custom database class (for example SecureDatabase) like this:
+
+```java
+public class SecureDatabase extends Database {
+
+	private int accountId;
+
+	public SecureDatabase(String jndiName, int accountId) {
+		super(jndiName);
+		this.accountId = accountId;
+	}
+
+	// inject additional account-id filter into every query
+	@Override
+	protected String injectIntoWhereExpression(Class<?> entityClass, String whereExpression) {
+		return (whereExpression == null ? "account_id=?" : "(" + whereExpression + ") AND account_id=?");
+	}
+
+	// inject account-id filtering parameter into every query
+	@Override
+	protected Object[] injectWhereParameters(Class<?> entityClass, Object[] whereParameters) {
+		if (whereParameters != null) {
+			whereParameters = Arrays.copyOf(whereParameters, whereParameters.length + 1);
+			whereParameters[whereParameters.length - 1] = accountId;
+			return whereParameters;
+		}
+		else return new Object[] {accountId};
+	}
+
+	@Override
+	protected void authorize(Object entity) throws UnauthorizedException {
+		if (!/* entity validation logic */)
+			throw new UnauthorizedException();
+	}
+}
+
+Database db = new SecureDatabase("java:comp/env/jdbc/demodb", accountId);
+```
+
 # History
 
 I first started with a custom ORM library probably around 2003, mostly for PostgreSQL.

@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.naming.*;
 import javax.sql.DataSource;
@@ -90,8 +91,10 @@ public class Database {
 	 * @return the same entity, with @Id field (if any) being initialized
 	 * @throws SQLException when an SQL specific error occurs
 	 * @throws BindException when data binding fails
+	 * @throws UnauthorizedException when entity saving is unauthorized (in authorize-method)
 	 */
-	public <T> T insert(T entity) throws BindException, SQLException {
+	public <T> T insert(T entity) throws BindException, SQLException, UnauthorizedException {
+		authorize(entity);
 		EntityProperties props = dialect.getProperties(entity.getClass());
 		return runStatements((db, conn) -> {
 			boolean hasId = (props.idField != null);
@@ -117,10 +120,13 @@ public class Database {
 	 * @return the same entities, with @Id field (if any) being initialized
 	 * @throws SQLException when an SQL specific error occurs (see method setBatchSize() in case of large entity lists)
 	 * @throws BindException when data binding fails
+	 * @throws UnauthorizedException when entity saving is unauthorized (in authorize-method)
 	 */
-	public <T> List<T> bulkInsert(List<T> entities) throws BindException, SQLException {
+	public <T> List<T> bulkInsert(List<T> entities) throws BindException, SQLException, UnauthorizedException {
 		if (entities == null || entities.isEmpty())
 			return entities;
+		for(T entity : entities)
+			authorize(entity);
 		EntityProperties props = dialect.getProperties(entities.get(0).getClass());
 		return runStatements((db, conn) -> {
 			for(List<T> batch : partition(entities, batchSize)) {//split the entity list into smaller batches, to avoid jdbc driver limit
@@ -156,17 +162,20 @@ public class Database {
 	 * @throws SQLException when an SQL specific error occurs
 	 * @throws BindException when data binding fails
 	 * @throws RecordNotFoundException when referenced entity was not found in database
+	 * @throws UnauthorizedException when entity saving is unauthorized (in authorize-method)
 	 */
-	public void update(Object entity) throws BindException, SQLException, RecordNotFoundException {
-		EntityProperties props = dialect.getProperties(entity.getClass());
+	public void update(Object entity) throws BindException, SQLException, RecordNotFoundException, UnauthorizedException {
+		authorize(entity);
+		Class<?> clazz = entity.getClass();
+		EntityProperties props = dialect.getProperties(clazz);
 		if (props.idField == null)
 			throw new BindException("Missing @Id field in " + entity.getClass().getSimpleName());
 		int count = runStatements((db, conn) -> {
-			String sql = props.sqlUpdate + " WHERE " + props.sqlWhere;
+			String sql = props.sqlUpdate + " WHERE " + injectIntoWhereExpression(clazz, props.sqlWhere);
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 				int ordinal = bindParameters(0, entity, props, stmt, props.updatableFields);
-				bindWhereParameters(stmt, ordinal, props.idField.field.get(entity));
+				bindWhereParameters(stmt, ordinal, injectWhereParameters(clazz, new Object[] {props.idField.field.get(entity)}));
 				return stmt.executeUpdate();
 			}
 		});
@@ -186,7 +195,7 @@ public class Database {
 		EntityProperties props = dialect.getProperties(entityClass);
 		if (props.idField == null)
 			throw new BindException("Missing @Id field in " + entityClass.getSimpleName());
-		if (deleteWhere(entityClass, props.sqlWhere, id) != 1)
+		if (deleteWhere(entityClass, injectIntoWhereExpression(entityClass, props.sqlWhere), injectWhereParameters(entityClass, new Object[] {id})) != 1)
 			throw new RecordNotFoundException();
 	}
 
@@ -202,10 +211,10 @@ public class Database {
 	public int deleteWhere(Class<?> entityClass, String whereExpression, Object ... whereParameters) throws BindException, SQLException {
 		return runStatements((db, conn) -> {
 			EntityProperties props = dialect.getProperties(entityClass);
-			String sql = props.sqlDelete + " WHERE " + whereExpression;
+			String sql = props.sqlDelete + " WHERE " + injectIntoWhereExpression(entityClass, whereExpression);
 			logger.accept(sql);
 			try(PreparedStatement stmt = conn.prepareStatement(sql)) {
-				bindWhereParameters(stmt, 0, whereParameters);
+				bindWhereParameters(stmt, 0, injectWhereParameters(entityClass, whereParameters));
 				return stmt.executeUpdate();
 			}
 		});
@@ -235,9 +244,43 @@ public class Database {
 	 */
 	public SqlQuery where(String whereExpression, Object ... whereParameters) throws BindException, SQLException {
 		SqlQuery q = new SqlQuery(this, null, logger);
-		q.whereExpression = whereExpression;
-		q.parameters = whereParameters;
+		q.whereExpression = injectIntoWhereExpression(null, whereExpression);
+		q.parameters = injectWhereParameters(null, whereParameters);
 		return q;
+	}
+
+	/**
+	 * Fetch records from the entity-related table and return records in list
+	 * @param <T> entity type
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @param whereParameters parameter values for WHERE expression
+	 * @return results in list
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
+	 */
+	public <T> List<T> listWhere(Class<? extends T> entityClass, String whereExpression, Object ... whereParameters) throws BindException, SQLException {
+		SqlQuery q = new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger);
+		q.whereExpression = injectIntoWhereExpression(entityClass, whereExpression);
+		q.parameters = injectWhereParameters(entityClass, whereParameters);
+		return q.list(entityClass);
+	}
+
+	/**
+	 * Fetch records from the entity-related table and return records in stream
+	 * @param <T> entity type
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @param whereParameters parameter values for WHERE expression
+	 * @return results in stream
+	 * @throws SQLException when an SQL specific error occurs
+	 * @throws BindException when data binding fails
+	 */
+	public <T> Stream<? extends T> streamWhere(Class<? extends T> entityClass, String whereExpression, Object ... whereParameters) throws BindException, SQLException {
+		SqlQuery q = new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger);
+		q.whereExpression = injectIntoWhereExpression(entityClass, whereExpression);
+		q.parameters = injectWhereParameters(entityClass, whereParameters);
+		return q.stream(entityClass);
 	}
 
 	/**
@@ -249,7 +292,10 @@ public class Database {
 	 * @throws BindException when data binding fails
 	 */
 	public <T> List<T> listAll(Class<? extends T> entityClass) throws BindException, SQLException {
-		return new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger).list(entityClass);
+		SqlQuery q = new SqlQuery(this, dialect.getProperties(entityClass).sqlSelect, logger);
+		q.whereExpression = injectIntoWhereExpression(entityClass, null);
+		q.parameters = injectWhereParameters(entityClass, null);
+		return q.list(entityClass);
 	}
 
 	/**
@@ -263,10 +309,40 @@ public class Database {
 	 * @throws RecordNotFoundException when referenced entity was not found in database
 	 */
 	public <T> T getById(Class<? extends T> entityClass, Object id) throws BindException, SQLException, RecordNotFoundException {
-		T entity = where(dialect.getProperties(entityClass).sqlWhere, id).fetch(entityClass);
+		String sqlWhere = injectIntoWhereExpression(entityClass, dialect.getProperties(entityClass).sqlWhere);
+		Object[] parameters = injectWhereParameters(entityClass, new Object[] {id});
+		T entity = where(sqlWhere, parameters).fetch(entityClass);
 		if (entity == null)
 			throw new RecordNotFoundException();
 		else return entity;
+	}
+
+	/**
+	 * Override this method to manipulate SQL WHERE expression for database SELECT, UPDATE and DELETE statements.
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param whereExpression SQL WHERE expression, for example "name LIKE ?"
+	 * @return where expression including injections
+	 */
+	protected String injectIntoWhereExpression(Class<?> entityClass, String whereExpression) {
+		return whereExpression;
+	}
+
+	/**
+	 * Override this method to manipulate SQL WHERE parameters for database SELECT, UPDATE and DELETE statements.
+	 * @param entityClass entity class, which indirectly refers to a database table
+	 * @param whereParameters original WHERE parameters
+	 * @return where WHERE parameters with injections
+	 */
+	protected Object[] injectWhereParameters(Class<?> entityClass, Object[] whereParameters) {
+		return whereParameters;
+	}
+
+	/**
+	 * Override this method to authorize an entity before saving it to database
+	 * @param entity entity to authorize
+	 * @throws UnauthorizedException when trying to save unauthorized entity
+	 */
+	protected void authorize(Object entity) throws UnauthorizedException {
 	}
 
 	/**

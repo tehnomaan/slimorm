@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.*;
 
 import org.junit.*;
 import eu.miltema.slimorm.Database;
+import eu.miltema.slimorm.RecordNotFoundException;
 import eu.miltema.slimorm.UnauthorizedException;
 
 public class TestRestrictionsAndAuthorization extends AbstractDatabaseTest {
@@ -97,5 +98,15 @@ public class TestRestrictionsAndAuthorization extends AbstractDatabaseTest {
 	public void testUnauthorized2() throws Exception {
 		Entity e = new Entity("Peter", 456);
 		rdb.insert(e);
+	}
+
+	@Test
+	public void testByIdOk() throws Exception {
+		assertEquals("John", rdb.getById(Entity.class, id1).name);
+	}
+
+	@Test(expected = RecordNotFoundException.class)
+	public void testByIdFail() throws Exception {
+		rdb.getById(Entity.class, id3);
 	}
 }

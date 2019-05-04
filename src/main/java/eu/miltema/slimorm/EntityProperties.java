@@ -23,10 +23,12 @@ public class EntityProperties {
 	Collection<FieldProperties> insertableFields = new ArrayList<>();//cached fields to make INSERT binding faster
 	Collection<FieldProperties> updatableFields = new ArrayList<>();//cached fields to make UPDATE binding faster
 	public Map<String, FieldProperties> mapColumnToField = new HashMap<>(); 
+	public Class<?> clazz;//this represents the final class
 	public FieldProperties idField;
 	public String sqlInsert, sqlUpdate, sqlDelete, sqlSelect, sqlWhere, sqlInsertValues;
 
 	public EntityProperties(Class<?> clazz, Dialect dialect) {
+		this.clazz = clazz;
 		this.dialect = dialect;
 		try {
 			initFields(clazz);
@@ -110,7 +112,7 @@ public class EntityProperties {
 				if (props.fieldType.isPrimitive() || props.fieldType.getPackage().getName().startsWith("java"))
 					throw new SlimormInitException(field, "@ManyToOne field must be a custom entity class", null);
 				EntityProperties feProp = dialect.getProperties(props.fieldType);
-				Class<?> feClass = feProp.idField.field.getDeclaringClass();
+				Class<?> feClass = feProp.clazz;
 				props.foreignField = feProp.idField;
 				SaveBinder sb = dialect.getSaveBinder(props.foreignField.fieldType);
 				LoadBinder lb = dialect.getLoadBinder(props.foreignField.fieldType);

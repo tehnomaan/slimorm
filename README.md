@@ -54,7 +54,7 @@ Add SlimORM dependency into build.gradle:
 
 ```gradle
 dependencies {
-    implementation 'eu.miltema:slimorm:1.0.0'
+    implementation 'eu.miltema:slimorm:1.3.2'
 }
 ```
 

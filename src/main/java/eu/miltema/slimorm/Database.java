@@ -358,28 +358,31 @@ public class Database {
 			throw new TransactionException("Nested transactions are not supported");
 
 		try {
-			txConnection = connFactory.getConnection();
-		} catch (SQLException se) {
-			throw se;
-		} catch (Exception e) {
-			throw new TransactionException("Transaction failed", e);
-		}
-
-		try {
-			txConnection.setAutoCommit(false);
-			T returnValue = runStatementsEx(statements);
-			txConnection.commit();
-			return returnValue;
-		}
-		catch(TransactionException x) {
-			txConnection.rollback();
-			throw x;
-		}
-		catch(Exception x) {
-			txConnection.rollback();
-			throw new TransactionException("Transaction failed", x);
+			try {
+				txConnection = connFactory.getConnection();
+			} catch (SQLException se) {
+				throw se;
+			} catch (Exception e) {
+				throw new TransactionException("Transaction failed", e);
+			}
+	
+			try {
+				txConnection.setAutoCommit(false);
+				T returnValue = runStatementsEx(statements);
+				txConnection.commit();
+				return returnValue;
+			}
+			catch(TransactionException x) {
+				txConnection.rollback();
+				throw x;
+			}
+			catch(Exception x) {
+				txConnection.rollback();
+				throw new TransactionException("Transaction failed", x);
+			}
 		}
 		finally {
+			txConnection.close();
 			txConnection = null;
 		}
 	}

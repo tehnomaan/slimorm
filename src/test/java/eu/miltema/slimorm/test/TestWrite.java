@@ -155,4 +155,12 @@ public class TestWrite extends AbstractDatabaseTest {
 			throw x;
 		}
 	}
+
+	@Test
+	public void testConnectionClosing() throws Exception {
+		for(int i = 0; i < 300; i++)
+			db.transaction((db, connection) -> {
+				return db.insert(new Entity("John", 2));
+			});
+	}
 }
